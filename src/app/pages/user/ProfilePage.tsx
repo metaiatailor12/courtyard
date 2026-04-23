@@ -1,0 +1,336 @@
+import { useState } from 'react';
+import { User, Calendar, CreditCard, Mail, Phone as PhoneIcon, CheckCircle, XCircle, Phone, Mail as MailIcon, LogOut } from 'lucide-react';
+import { format } from 'date-fns';
+import { useNavigate } from 'react-router';
+import { Navbar } from '../../components/Navbar';
+import { GlassCard } from '../../components/GlassCard';
+import { Button } from '../../components/Button';
+import { useAuth } from '../../context/AuthContext';
+import { useBooking } from '../../context/BookingContext';
+
+export const ProfilePage = () => {
+  const { user, logout } = useAuth();
+  const { bookings, subscriptions } = useBooking();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'bookings' | 'subscriptions'>('bookings');
+  const { bookings, subscriptions, appSettings } = useBooking();
+
+  const userBookings = user?.email
+  const supportPhone = typeof appSettings.landing?.venuePhone === 'string' ? appSettings.landing.venuePhone : '';
+  const supportEmail = typeof appSettings.landing?.venueEmail === 'string' ? appSettings.landing.venueEmail : '';
+    ? bookings.filter(booking => booking.userEmail === user.email)
+    : bookings;
+
+  const userSubscriptions = user?.email
+    ? subscriptions.filter(subscription => subscription.userEmail === user.email)
+    : subscriptions;
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+
+      <div className="container mx-auto px-4 py-6 md:py-8 max-w-6xl">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">My Profile</h1>
+          <p className="text-sm md:text-base text-gray-600">Manage your account and view booking history</p>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-4 md:gap-6">
+          {/* User Info Card */}
+          <GlassCard className="p-4 md:p-6 lg:col-span-1 h-fit">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-full flex items-center justify-center mb-4">
+                <User className="w-10 h-10 md:w-12 md:h-12 text-white" />
+              </div>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-1">{user?.name || 'User Name'}</h2>
+              <p className="text-sm text-gray-600 mb-4 capitalize">{user?.role || 'User'} Account</p>
+
+              <div className="w-full space-y-3 text-left">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Mail className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-gray-600">Email</p>
+                    <p className="text-sm font-medium text-gray-800 truncate">{user?.email || 'user@example.com'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <Phone className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-600">Phone</p>
+                    <p className="text-sm font-medium text-gray-800">{user?.phone || 'Not provided'}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <MailIcon className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-600">Location</p>
+                    <p className="text-sm font-medium text-gray-800">{user?.location || user?.address || 'Not provided'}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full mt-6 pt-6 border-t border-gray-200">
+                <div className="grid grid-cols-2 gap-4 text-center">
+                  <div>
+                    <p className="text-2xl font-bold text-[#10b981]">{userBookings.length}</p>
+                    <p className="text-xs text-gray-600">Total Bookings</p>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold text-blue-600">{userSubscriptions.filter(s => s.status === 'active').length}</p>
+                    <p className="text-xs text-gray-600">Active Plans</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full mt-6 pt-6 border-t border-gray-200">
+                <Button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-3 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600"
+                >
+                  <LogOut className="w-4 h-4 inline mr-2" />
+                  Logout
+                </Button>
+              </div>
+            </div>
+          </GlassCard>
+
+          {/* Bookings & Subscriptions */}
+          <div className="lg:col-span-2">
+            {/* Tabs */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setActiveTab('bookings')}
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
+                  activeTab === 'bookings'
+                    ? 'bg-[#10b981] text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <Calendar className="w-4 h-4 inline mr-2" />
+                Booking History
+              </button>
+              <button
+                onClick={() => setActiveTab('subscriptions')}
+                className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
+                  activeTab === 'subscriptions'
+                    ? 'bg-[#10b981] text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <CreditCard className="w-4 h-4 inline mr-2" />
+                Subscriptions
+              </button>
+            </div>
+
+            {/* Booking History */}
+            {activeTab === 'bookings' && (
+              <GlassCard className="p-4 md:p-6">
+                <h3 className="text-lg md:text-xl font-semibold mb-4">Booking History</h3>
+                {userBookings.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-600">No bookings yet</p>
+                    <p className="text-sm text-gray-500">Your booking history will appear here</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {userBookings.map((booking) => {
+                      // Get time slot range from slots
+                      const getTimeSlotRange = () => {
+                        if (booking.slots.length === 0) return 'No slots';
+                        if (booking.slots.length === 1) return booking.slots[0].time;
+                        
+                        const firstSlot = booking.slots[0].time;
+                        const lastSlotTime = booking.slots[booking.slots.length - 1].time;
+                        const lastSlotEndTime = lastSlotTime.split(' - ')[1] || lastSlotTime;
+                        return `${firstSlot.split(' - ')[0]} - ${lastSlotEndTime}`;
+                      };
+
+                      // Get court name
+                      const getCourtName = () => {
+                        if (booking.slots.length > 0) {
+                          return `Court ${booking.slots[0].court}`;
+                        }
+                        return 'Court';
+                      };
+
+                      return (
+                        <div
+                          key={booking.id}
+                          className="border-2 border-gray-200 rounded-xl p-4 md:p-6 hover:shadow-lg transition-shadow"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-semibold text-gray-800">{getCourtName()}</h4>
+                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                  booking.status === 'upcoming'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : booking.status === 'completed'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
+                                }`}>
+                                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500">ID: {booking.id}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-2xl font-bold text-[#10b981]">₹{booking.totalAmount}</p>
+                              <p className="text-xs text-gray-600">Paid</p>
+                            </div>
+                          </div>
+
+                          <div className="grid sm:grid-cols-2 gap-3 mb-4">
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-600 mb-1">Date</p>
+                              <p className="text-sm font-semibold text-gray-800">
+                                {format(new Date(booking.date), 'MMM dd, yyyy')}
+                              </p>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-600 mb-1">Time Slot</p>
+                              <p className="text-sm font-semibold text-gray-800">{getTimeSlotRange()}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs text-gray-600 pt-3 border-t border-gray-200">
+                            <span>Payment ID: {booking.paymentId}</span>
+                            <span className="flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3 text-green-600" />
+                              Payment Confirmed
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </GlassCard>
+            )}
+
+            {/* Subscription Details */}
+            {activeTab === 'subscriptions' && (
+              <>
+                {/* Cancellation Info Banner */}
+                <GlassCard className="p-4 mb-4 bg-gradient-to-r from-blue-50 to-emerald-50 border-l-4 border-[#10b981]">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 md:w-10 md:h-10 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
+                      <Phone className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1 text-sm md:text-base">Need to Cancel a Subscription?</h4>
+                      <p className="text-xs md:text-sm text-gray-600 mb-2">
+                        Please contact our support team to request a cancellation.
+                      </p>
+                      <div className="flex flex-wrap gap-3 text-xs md:text-sm">
+                        <a 
+                          href={supportPhone ? `tel:${supportPhone}` : '#'} 
+                          className="flex items-center gap-1 text-[#10b981] hover:text-[#059669] font-medium"
+                        >
+                          <Phone className="w-3 h-3 md:w-4 md:h-4" />
+                          {supportPhone || 'support phone unavailable'}
+                        </a>
+                        <a 
+                          href={supportEmail ? `mailto:${supportEmail}` : '#'} 
+                          className="flex items-center gap-1 text-[#10b981] hover:text-[#059669] font-medium"
+                        >
+                          <MailIcon className="w-3 h-3 md:w-4 md:h-4" />
+                          {supportEmail || 'support email unavailable'}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </GlassCard>
+
+                <GlassCard className="p-4 md:p-6">
+                  <h3 className="text-lg md:text-xl font-semibold mb-4">Subscription Plans</h3>
+                  {userSubscriptions.length === 0 ? (
+                    <div className="text-center py-12">
+                      <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-600">No active subscriptions</p>
+                      <p className="text-sm text-gray-500">Subscribe to get fixed court bookings</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {userSubscriptions.map((sub) => (
+                        <div
+                          key={sub.id}
+                          className="border-2 border-gray-200 rounded-xl p-4 md:p-6 hover:shadow-lg transition-shadow"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-semibold text-gray-800">Monthly Subscription</h4>
+                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                  sub.status === 'active'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {sub.status === 'active' ? (
+                                    <span className="flex items-center gap-1">
+                                      <CheckCircle className="w-3 h-3" /> Active
+                                    </span>
+                                  ) : (
+                                    <span className="flex items-center gap-1">
+                                      <XCircle className="w-3 h-3" /> Expired
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500">ID: {sub.id}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-2xl font-bold text-[#10b981]">₹{sub.amount}</p>
+                              <p className="text-xs text-gray-600">Paid</p>
+                            </div>
+                          </div>
+
+                          <div className="grid sm:grid-cols-2 gap-3 mb-4">
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-600 mb-1">Subscription Period</p>
+                              <p className="text-sm font-semibold text-gray-800">
+                                {format(new Date(sub.startDate), 'MMM dd')} - {format(new Date(sub.endDate), 'MMM dd, yyyy')}
+                              </p>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-600 mb-1">Weekdays Count</p>
+                              <p className="text-sm font-semibold text-[#10b981]">{sub.weekdaysCount} days</p>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-600 mb-1">Court</p>
+                              <p className="text-sm font-semibold text-gray-800">{sub.courtName}</p>
+                            </div>
+                            <div className="bg-gray-50 p-3 rounded-lg">
+                              <p className="text-xs text-gray-600 mb-1">Time Slot</p>
+                              <p className="text-sm font-semibold text-gray-800">{sub.timeSlot}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between text-xs text-gray-600 pt-3 border-t border-gray-200">
+                            <span>Payment ID: {sub.paymentId}</span>
+                            <span className="flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3 text-green-600" />
+                              Payment Confirmed
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </GlassCard>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

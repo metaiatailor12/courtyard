@@ -1,0 +1,681 @@
+import { useState } from 'react';
+import { Search, Calendar, Edit, Trash2, Eye, Repeat, X, Clock, User, MapPin, Phone, Plus } from 'lucide-react';
+import { format } from 'date-fns';
+import { Navbar } from '../../components/Navbar';
+import { GlassCard } from '../../components/GlassCard';
+import { Button } from '../../components/Button';
+import { Input } from '../../components/Input';
+import { useBooking } from '../../context/BookingContext';
+import { CreateBookingModal } from './CreateBookingModal';
+import { CreateSubscriptionModal } from './CreateSubscriptionModal';
+
+export const AdminBookings = () => {
+  const { bookings, subscriptions, cancelBooking, cancelSubscription, createBooking, createSubscription } = useBooking();
+  const [activeTab, setActiveTab] = useState<'bookings' | 'subscriptions'>('bookings');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
+  const [subStatusFilter, setSubStatusFilter] = useState<'all' | 'active' | 'expired'>('all');
+  const [viewDetailsModal, setViewDetailsModal] = useState<any>(null);
+  const [editModal, setEditModal] = useState<any>(null);
+  const [createBookingModal, setCreateBookingModal] = useState(false);
+  const [createSubscriptionModal, setCreateSubscriptionModal] = useState(false);
+
+  const filteredBookings = bookings.filter(booking => {
+    const matchesSearch = booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         booking.courtName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const filteredSubscriptions = subscriptions.filter(sub => {
+    const matchesSearch = sub.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         sub.courtName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         sub.userName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = subStatusFilter === 'all' || sub.status === subStatusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const handleCancelBooking = async (bookingId: string) => {
+    if (window.confirm('Are you sure you want to cancel this booking?')) {
+      try {
+        await cancelBooking(bookingId, { asAdmin: true });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to cancel booking';
+        alert(message);
+      }
+    }
+  };
+
+  const handleCancelSubscription = async (subId: string) => {
+    if (window.confirm('Are you sure you want to cancel this subscription?')) {
+      try {
+        await cancelSubscription(subId, { asAdmin: true });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to cancel subscription';
+        alert(message);
+      }
+    }
+  };
+
+  const handleCreateBooking = async (data: any) => {
+    const toHourRange = (value: string) => {
+      const match = value.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (!match) {
+        return value;
+      }
+
+      const hour12 = Number(match[1]);
+      const minutes = match[2];
+      const period = match[3].toUpperCase();
+      let hour24 = hour12 % 12;
+
+      if (period === 'PM') {
+        hour24 += 12;
+      }
+
+      const endHour24 = (hour24 + 1) % 24;
+      const endPeriod = endHour24 >= 12 ? 'PM' : 'AM';
+      const endHour12 = endHour24 % 12 || 12;
+
+      return `${hour12}:${minutes} ${period} - ${endHour12}:${minutes} ${endPeriod}`;
+    };
+
+    // Convert time slots from strings to proper TimeSlot objects
+    const slots = data.timeSlots.map((time: string, index: number) => ({
+      id: `slot-${Date.now()}-${index}`,
+      time: toHourRange(time),
+      court: parseInt(data.court.replace('Court ', '')),
+      date: data.date,
+      status: 'booked' as const,
+      price: 500
+    }));
+
+    try {
+      await createBooking({
+        courtName: data.court,
+        date: data.date,
+        slots: slots,
+        totalAmount: data.totalAmount,
+        status: 'upcoming',
+        paymentId: data.paymentId,
+        userName: data.userName,
+        userEmail: data.userEmail || undefined,
+        userPhone: data.userPhone,
+      }, { asAdmin: true });
+
+      alert('Onsite booking created successfully!');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to create booking';
+      alert(message);
+    }
+  };
+
+  const handleCreateSubscription = async (data: any) => {
+    try {
+      await createSubscription({
+        userId: data.userEmail || data.userPhone,
+        courtName: data.court,
+        court: Number(String(data.court).replace('Court ', '')),
+        timeSlot: data.timeSlot,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        weekdaysCount: data.weekdaysCount,
+        amount: data.amount,
+        status: 'active',
+        paymentId: data.paymentId,
+        userName: data.userName,
+        userEmail: data.userEmail || undefined,
+        userPhone: data.userPhone,
+      }, { asAdmin: true });
+
+      alert('Onsite subscription created successfully!');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to create subscription';
+      alert(message);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      upcoming: 'bg-blue-100 text-blue-800',
+      completed: 'bg-green-100 text-green-800',
+      cancelled: 'bg-red-100 text-red-800',
+      active: 'bg-green-100 text-green-800',
+      expired: 'bg-gray-100 text-gray-800',
+    };
+    return (
+      <span className={`px-3 py-1 rounded-full text-xs font-medium ${styles[status as keyof typeof styles]}`}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </span>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Manage Bookings</h1>
+          <p className="text-gray-600">View, modify, and cancel bookings</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-4 mb-6">
+          <button
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              activeTab === 'bookings'
+                ? 'bg-[#10b981] text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('bookings')}
+          >
+            Bookings
+          </button>
+          <button
+            className={`px-4 py-2 rounded-lg font-medium transition-all ${
+              activeTab === 'subscriptions'
+                ? 'bg-[#10b981] text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('subscriptions')}
+          >
+            Subscriptions
+          </button>
+        </div>
+
+        {/* Filters and Search */}
+        <GlassCard className="p-6 mb-6">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
+            <div className="flex-1 w-full">
+              <Input
+                placeholder={`Search by ${activeTab === 'bookings' ? 'booking ID or court' : 'subscription ID, user or court'}...`}
+                icon={<Search className="w-5 h-5" />}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Button
+              onClick={() => activeTab === 'bookings' ? setCreateBookingModal(true) : setCreateSubscriptionModal(true)}
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <Plus className="w-5 h-5" />
+              {activeTab === 'bookings' ? 'Create Booking' : 'Create Subscription'}
+            </Button>
+          </div>
+          <div className="flex gap-2 flex-wrap mt-4">
+            {activeTab === 'bookings' ? (
+              ['all', 'upcoming', 'completed', 'cancelled'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status as any)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all capitalize ${
+                    statusFilter === status
+                      ? 'bg-[#10b981] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))
+            ) : (
+              ['all', 'active', 'expired'].map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setSubStatusFilter(status as any)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all capitalize ${
+                    subStatusFilter === status
+                      ? 'bg-[#10b981] text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))
+            )}
+          </div>
+        </GlassCard>
+
+        {/* Bookings Table */}
+        {activeTab === 'bookings' && (
+          <GlassCard className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Booking ID</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">User</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Court</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Date</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Time Slot</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Amount</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredBookings.map((booking) => {
+                    // Get time slot range
+                    const getTimeSlotRange = () => {
+                      if (booking.slots.length === 0) return 'No slots';
+                      if (booking.slots.length === 1) return booking.slots[0].time;
+                      
+                      const firstSlot = booking.slots[0].time;
+                      const lastSlotTime = booking.slots[booking.slots.length - 1].time;
+                      const lastSlotEndTime = lastSlotTime.split(' - ')[1] || lastSlotTime;
+                      return `${firstSlot.split(' - ')[0]} - ${lastSlotEndTime}`;
+                    };
+
+                    // Get court name
+                    const getCourtName = () => {
+                      if (booking.slots.length > 0) {
+                        return `Court ${booking.slots[0].court}`;
+                      }
+                      return booking.courtName;
+                    };
+
+                    return (
+                      <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4">
+                          <p className="font-medium text-gray-800">{booking.id}</p>
+                          <p className="text-xs text-gray-500">{booking.paymentId}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-medium text-gray-700">{booking.userName || 'N/A'}</p>
+                          <p className="text-xs text-gray-500">{booking.userEmail || 'N/A'}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-gray-700">{getCourtName()}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-700">
+                              {format(new Date(booking.date), 'MMM d, yyyy')}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm text-gray-700">{getTimeSlotRange()}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-semibold text-[#10b981]">₹{booking.totalAmount}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(booking.status)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setViewDetailsModal({ type: 'booking', data: booking })}
+                              className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="View Details"
+                            >
+                              <Eye className="w-4 h-4 text-blue-600" />
+                            </button>
+                            {booking.status === 'upcoming' && (
+                              <>
+                                <button
+                                  onClick={() => setEditModal({ type: 'booking', data: booking })}
+                                  className="p-2 hover:bg-green-50 rounded-lg transition-colors"
+                                  title="Edit Booking"
+                                >
+                                  <Edit className="w-4 h-4 text-green-600" />
+                                </button>
+                                <button
+                                  onClick={() => handleCancelBooking(booking.id)}
+                                  className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Cancel Booking"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-600" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredBookings.length === 0 && (
+              <div className="text-center py-12">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No bookings found</p>
+              </div>
+            )}
+          </GlassCard>
+        )}
+
+        {/* Subscriptions Table */}
+        {activeTab === 'subscriptions' && (
+          <GlassCard className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Subscription ID</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">User</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Court</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Time Slot</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Start Date</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">End Date</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Weekdays Count</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Amount</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Status</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredSubscriptions.map((sub) => (
+                    <tr key={sub.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <p className="font-medium text-gray-800">{sub.id}</p>
+                        <p className="text-xs text-gray-500">{sub.paymentId}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm text-gray-700">{sub.userName}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm text-gray-700">{sub.courtName}</p>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-700">{sub.timeSlot}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-700">
+                            {format(new Date(sub.startDate), 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <span className="text-sm text-gray-700">
+                            {format(new Date(sub.endDate), 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-sm text-gray-700">{sub.weekdaysCount} days</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-semibold text-[#10b981]">₹{sub.amount}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {getStatusBadge(sub.status)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setViewDetailsModal({ type: 'subscription', data: sub })}
+                            className="p-2 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="View Details"
+                          >
+                            <Eye className="w-4 h-4 text-blue-600" />
+                          </button>
+                          {sub.status === 'active' && (
+                            <>
+                              <button
+                                onClick={() => setEditModal({ type: 'subscription', data: sub })}
+                                className="p-2 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Edit Subscription"
+                              >
+                                <Edit className="w-4 h-4 text-green-600" />
+                              </button>
+                              <button
+                                onClick={() => handleCancelSubscription(sub.id)}
+                                className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Cancel Subscription"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredSubscriptions.length === 0 && (
+              <div className="text-center py-12">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No subscriptions found</p>
+              </div>
+            )}
+          </GlassCard>
+        )}
+
+        {/* Summary Stats */}
+        <div className="grid md:grid-cols-3 gap-4 mt-6">
+          <GlassCard className="p-6">
+            <p className="text-sm text-gray-600 mb-1">Total Bookings</p>
+            <p className="text-2xl font-bold text-gray-800">{bookings.length}</p>
+          </GlassCard>
+          <GlassCard className="p-6">
+            <p className="text-sm text-gray-600 mb-1">Upcoming Bookings</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {bookings.filter(b => b.status === 'upcoming').length}
+            </p>
+          </GlassCard>
+          <GlassCard className="p-6">
+            <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
+            <p className="text-2xl font-bold text-green-600">
+              ₹{bookings.reduce((sum, b) => sum + b.totalAmount, 0)}
+            </p>
+          </GlassCard>
+        </div>
+
+        {/* View Details Modal */}
+        {viewDetailsModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+                <h3 className="text-2xl font-bold text-gray-800">
+                  {viewDetailsModal.type === 'booking' ? 'Booking Details' : 'Subscription Details'}
+                </h3>
+                <button
+                  onClick={() => setViewDetailsModal(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                {viewDetailsModal.type === 'booking' ? (
+                  <>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Booking ID</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.id}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Payment ID</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.paymentId}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">User Name</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.userName || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">User Email</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.userEmail || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">User Phone</p>
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <p className="font-semibold text-gray-800">{viewDetailsModal.data.userPhone || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Court</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.courtName}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Date</p>
+                        <p className="font-semibold text-gray-800">
+                          {format(new Date(viewDetailsModal.data.date), 'MMMM d, yyyy')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Status</p>
+                        {getStatusBadge(viewDetailsModal.data.status)}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Total Amount</p>
+                        <p className="font-semibold text-[#10b981]">₹{viewDetailsModal.data.totalAmount}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">Time Slots</p>
+                      <div className="flex flex-wrap gap-2">
+                        {viewDetailsModal.data.slots.map((slot: any) => (
+                          <span key={slot.id} className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm">
+                            {slot.time}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Subscription ID</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.id}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Payment ID</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.paymentId}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">User Name</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.userName}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">User Email</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.userId}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">User Phone</p>
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <p className="font-semibold text-gray-800">{viewDetailsModal.data.userPhone || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Court</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.court}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Time Slot</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.timeSlot}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Start Date</p>
+                        <p className="font-semibold text-gray-800">
+                          {format(new Date(viewDetailsModal.data.startDate), 'MMMM d, yyyy')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">End Date</p>
+                        <p className="font-semibold text-gray-800">
+                          {format(new Date(viewDetailsModal.data.endDate), 'MMMM d, yyyy')}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Weekdays Count</p>
+                        <p className="font-semibold text-gray-800">{viewDetailsModal.data.weekdaysCount} days</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Status</p>
+                        {getStatusBadge(viewDetailsModal.data.status)}
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Total Amount</p>
+                        <p className="font-semibold text-[#10b981]">₹{viewDetailsModal.data.amount}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              <div className="p-6 border-t border-gray-200 flex justify-end">
+                <Button onClick={() => setViewDetailsModal(null)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Modal */}
+        {editModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white">
+                <h3 className="text-2xl font-bold text-gray-800">
+                  {editModal.type === 'booking' ? 'Edit Booking' : 'Edit Subscription'}
+                </h3>
+                <button
+                  onClick={() => setEditModal(null)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                <p className="text-gray-600 mb-4">
+                  Edit functionality will be implemented here. For now, this is a preview modal.
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> This feature allows admins to modify {editModal.type} details such as date, time, court, etc.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <Button variant="secondary" onClick={() => setEditModal(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={() => {
+                  alert(`${editModal.type} updated successfully!`);
+                  setEditModal(null);
+                }}>
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Create Booking Modal */}
+        <CreateBookingModal
+          isOpen={createBookingModal}
+          onClose={() => setCreateBookingModal(false)}
+          onCreate={handleCreateBooking}
+          existingBookings={bookings}
+          existingSubscriptions={subscriptions}
+        />
+
+        {/* Create Subscription Modal */}
+        <CreateSubscriptionModal
+          isOpen={createSubscriptionModal}
+          onClose={() => setCreateSubscriptionModal(false)}
+          onCreate={handleCreateSubscription}
+        />
+      </div>
+    </div>
+  );
+};
