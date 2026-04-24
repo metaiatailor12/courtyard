@@ -218,11 +218,18 @@ export const AdminSettings = () => {
         throw new Error(payload?.error?.message || 'Unable to upload image');
       }
 
+      const uploadedUrl = payload.upload.secureUrl as string;
+      await saveSettings({
+        landing: {
+          aboutImage: uploadedUrl,
+        },
+      });
+
       setLandingFormData((prev) => ({
         ...prev,
-        aboutImage: payload.upload.secureUrl,
+        aboutImage: uploadedUrl,
       }));
-      showSuccessToast('About image uploaded. Click Save Changes to publish it.');
+      showSuccessToast('About image uploaded and saved successfully!');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to upload image';
       showErrorToast('Upload failed', message);
@@ -666,7 +673,7 @@ export const AdminSettings = () => {
                       />
                     </label>
                     <p className="text-xs text-gray-500">
-                      Supported formats: PNG, JPG, JPEG, WEBP. After upload, click Save Changes.
+                      Supported formats: PNG, JPG, JPEG, WEBP. Uploading will save this image immediately.
                     </p>
                   </div>
                 </div>

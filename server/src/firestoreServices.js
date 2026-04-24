@@ -261,9 +261,17 @@ async function updateAppSettings(payload) {
   const db = getDb();
   const current = await getAppSettings();
   const landingPayload = payload.landing || {};
+  const nextHeroImage =
+    typeof landingPayload.heroImage === 'string' && landingPayload.heroImage.trim()
+      ? landingPayload.heroImage
+      : current.landing.heroImage;
+  const nextAboutImage =
+    typeof landingPayload.aboutImage === 'string' && landingPayload.aboutImage.trim()
+      ? landingPayload.aboutImage
+      : current.landing.aboutImage;
   const siteAssets = normalizeSiteAssets({
-    heroImage: landingPayload.heroImage,
-    aboutImage: landingPayload.aboutImage,
+    heroImage: nextHeroImage,
+    aboutImage: nextAboutImage,
   });
   const nextLanding = {
     ...current.landing,
