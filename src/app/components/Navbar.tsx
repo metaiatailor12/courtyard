@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router';
-import { LogOut, User, LayoutDashboard, Settings, Calendar, CreditCard, Phone, Menu, X } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, Settings, Calendar, CreditCard, Phone, Menu, X, MessageSquare, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
 import { NotificationCenter } from './NotificationCenter';
@@ -120,6 +120,24 @@ export const Navbar = () => {
                 >
                   <Settings className="w-4 h-4" />
                   Settings
+                </Link>
+                <Link
+                  to="/admin/reviews"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    isActivePath('/admin/reviews') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  Reviews
+                </Link>
+                <Link
+                  to="/admin/messages"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    isActivePath('/admin/messages') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <Mail className="w-4 h-4" />
+                  Messages
                 </Link>
                 
                 {/* Notification Center for Admin */}
@@ -258,6 +276,26 @@ export const Navbar = () => {
                   >
                     <Settings className="w-4 h-4" />
                     Settings
+                  </Link>
+                  <Link
+                    to="/admin/reviews"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                      isActivePath('/admin/reviews') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Reviews
+                  </Link>
+                  <Link
+                    to="/admin/messages"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                      isActivePath('/admin/messages') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <Mail className="w-4 h-4" />
+                    Messages
                   </Link>
                 </>
               )}

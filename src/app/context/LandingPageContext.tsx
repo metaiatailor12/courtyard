@@ -71,6 +71,9 @@ export interface LandingPageContent {
     rating: number;
     comment: string;
     date: string;
+    adminReply?: string | null;
+    adminReplyBy?: string | null;
+    adminReplyAt?: string | null;
   }[];
 }
 
@@ -129,15 +132,18 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
 
     const loadRemoteContent = async () => {
       try {
-        const [settingsResponse, galleryResponse] = await Promise.all([
+        const [settingsResponse, galleryResponse, reviewsResponse] = await Promise.all([
           fetch(`${API_BASE_URL}/settings`),
           fetch(`${API_BASE_URL}/gallery`),
+          fetch(`${API_BASE_URL}/reviews`),
         ]);
 
         const settingsPayload = await settingsResponse.json();
         const galleryPayload = await galleryResponse.json();
+        const reviewsPayload = await reviewsResponse.json().catch(() => null);
         const remoteContent = settingsPayload?.settings?.landing;
         const remoteGallery = Array.isArray(galleryPayload?.gallery) ? galleryPayload.gallery : [];
+        const remoteReviews = Array.isArray(reviewsPayload?.reviews) ? reviewsPayload.reviews : [];
 
         if (!active || !remoteContent || typeof remoteContent !== 'object') {
           return;
@@ -146,6 +152,7 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
         setContent(normalizeLandingContent({
           ...(remoteContent as Partial<LandingPageContent>),
           gallery: remoteGallery,
+          reviews: remoteReviews,
         }));
       } catch {
         // Keep the empty state if the backend is temporarily unavailable.

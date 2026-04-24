@@ -8,15 +8,24 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useAuth } from '../../context/AuthContext';
 import { useBooking } from '../../context/BookingContext';
 import { useLandingPage } from '../../context/LandingPageContext';
+import { getCurrentUserToken } from '../../lib/firebaseClient';
 
 export const UserHome = () => {
   const navigate = useNavigate();
   const [currentImage, setCurrentImage] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
+  const [feedbackSuccess, setFeedbackSuccess] = useState('');
   const { appSettings } = useBooking();
   const { content } = useLandingPage();
   const { user } = useAuth();
+  const RAW_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
+  const API_BASE_URL =
+    typeof window !== 'undefined' && window.location.hostname.includes('localhost')
+      ? '/api'
+      : RAW_API_BASE_URL;
 
   const landing = appSettings.landing as Record<string, unknown>;
   const venueName = content.venueName || (typeof landing.venueName === 'string' ? landing.venueName : '');
@@ -45,11 +54,44 @@ export const UserHome = () => {
     }
   };
 
-  const handleSubmitFeedback = () => {
-    if (feedback.trim() && rating > 0) {
-      alert('Thank you for your feedback!');
+  const handleSubmitFeedback = async () => {
+    if (!feedback.trim() || rating === 0 || submittingFeedback) {
+      return;
+    }
+
+    setSubmittingFeedback(true);
+    setFeedbackError('');
+    setFeedbackSuccess('');
+
+    try {
+      const token = await getCurrentUserToken();
+      if (!token) {
+        throw new Error('Please sign in again to submit feedback.');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ rating, comment: feedback.trim() }),
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error?.message || 'Unable to submit feedback right now.');
+      }
+
       setFeedback('');
       setRating(0);
+      setFeedbackSuccess('Thanks for your feedback!');
+      window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to submit feedback right now.';
+      setFeedbackError(message);
+    } finally {
+      setSubmittingFeedback(false);
     }
   };
 
@@ -207,6 +249,14 @@ export const UserHome = () => {
                       <span className="text-sm text-gray-500">{review.date}</span>
                     </div>
                     <p className="text-gray-600">{review.comment}</p>
+                    {review.adminReply ? (
+                      <div className="mt-3 rounded-lg bg-emerald-50 border border-emerald-100 p-3">
+                        <p className="text-xs font-semibold text-emerald-700 mb-1">
+                          Reply from {review.adminReplyBy || 'Admin'}
+                        </p>
+                        <p className="text-sm text-gray-700">{review.adminReply}</p>
+                      </div>
+                    ) : null}
                   </div>
                 )) : (
                   <p className="text-sm text-gray-500">Reviews will appear here once they are stored in Firestore.</p>
@@ -289,10 +339,12 @@ export const UserHome = () => {
                 variant="primary"
                 className="w-full"
                 onClick={handleSubmitFeedback}
-                disabled={!feedback.trim() || rating === 0}
+                disabled={!feedback.trim() || rating === 0 || submittingFeedback}
               >
-                Submit Feedback
+                {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
               </Button>
+              {feedbackError ? <p className="text-sm text-red-600 mt-3">{feedbackError}</p> : null}
+              {feedbackSuccess ? <p className="text-sm text-emerald-700 mt-3">{feedbackSuccess}</p> : null}
             </GlassCard>
           </div>
         </div>

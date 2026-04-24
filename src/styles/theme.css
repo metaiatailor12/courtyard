@@ -2,7 +2,7 @@
 
 :root {
   --font-size: 16px;
-  --background: #ffffff;
+  --background: #f6f4ef;
   --foreground: oklch(0.145 0 0);
   --card: #ffffff;
   --card-foreground: oklch(0.145 0 0);
@@ -49,6 +49,7 @@
   --courtyard-warning: #f59e0b;
   --courtyard-error: #ef4444;
   --courtyard-glass: rgba(255, 255, 255, 0.7);
+  --courtyard-offwhite: #f6f4ef;
 }
 
 .dark {
@@ -223,5 +224,40 @@
   input[type="datetime-local"]:invalid,
   input[type="time"]:invalid {
     color: #9ca3af;
+  }
+}
+
+/* Replace multi-color gradients with a single brand green tone. */
+@layer utilities {
+  :root {
+    --courtyard-solid-green: #0a9f94;
+  }
+
+  .bg-gradient-to-r.from-emerald-600.to-cyan-600,
+  .bg-gradient-to-r.from-emerald-500.to-cyan-600,
+  .bg-gradient-to-r.from-cyan-500.to-blue-600,
+  .bg-gradient-to-r.from-green-500.to-green-600,
+  .bg-gradient-to-r.from-blue-500.to-blue-600,
+  .bg-gradient-to-r.from-purple-500.to-purple-600,
+  .bg-gradient-to-br.from-emerald-500.to-cyan-600,
+  .bg-gradient-to-br.from-cyan-500.to-blue-600 {
+    background-image: none !important;
+    background-color: var(--courtyard-solid-green) !important;
+  }
+
+  .hover\:from-emerald-600.hover\:to-cyan-700:hover,
+  .hover\:from-cyan-600.hover\:to-blue-700:hover,
+  .hover\:from-green-600.hover\:to-green-700:hover,
+  .hover\:from-blue-600.hover\:to-blue-700:hover,
+  .hover\:from-purple-600.hover\:to-purple-700:hover {
+    background-image: none !important;
+    background-color: var(--courtyard-solid-green) !important;
+  }
+
+  .bg-gradient-to-br.from-gray-50.via-emerald-50.to-cyan-50,
+  .bg-gradient-to-br.from-gray-50.via-white.to-emerald-50\/30,
+  .bg-gradient-to-br.from-emerald-50.via-white.to-cyan-50 {
+    background-image: none !important;
+    background-color: var(--courtyard-offwhite) !important;
   }
 }

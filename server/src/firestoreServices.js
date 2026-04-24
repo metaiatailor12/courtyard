@@ -1074,6 +1074,177 @@ async function createContactMessage(payload) {
   };
 }
 
+function mapContactMessageDoc(doc) {
+  const data = doc.data() || {};
+
+  return {
+    id: doc.id,
+    name: String(data.name || '').trim(),
+    email: String(data.email || '').trim().toLowerCase(),
+    phone: String(data.phone || '').trim() || null,
+    subject: String(data.subject || '').trim(),
+    message: String(data.message || '').trim(),
+    status: String(data.status || 'new').trim(),
+    adminReply: typeof data.adminReply === 'string' ? data.adminReply.trim() : null,
+    adminReplyBy: typeof data.adminReplyBy === 'string' ? data.adminReplyBy.trim() : null,
+    adminReplyAt: data.adminReplyAt ? toIso(data.adminReplyAt) : null,
+    createdAt: toIso(data.createdAt),
+    updatedAt: toIso(data.updatedAt),
+  };
+}
+
+async function listContactMessages() {
+  const db = getDb();
+  const snapshot = await db.collection('contact_messages').get();
+
+  return snapshot.docs
+    .map(mapContactMessageDoc)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+async function listContactMessagesByEmail(email) {
+  if (!email || typeof email !== 'string') {
+    throw new ApiError(400, 'email is required');
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const db = getDb();
+  const snapshot = await db.collection('contact_messages').where('email', '==', normalizedEmail).get();
+
+  return snapshot.docs
+    .map(mapContactMessageDoc)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+async function replyToContactMessage(messageId, payload, authUser) {
+  if (!authUser?.sub || authUser.role !== 'admin') {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  const reply = String(payload?.reply || '').trim();
+  if (!reply) {
+    throw new ApiError(400, 'reply is required');
+  }
+
+  const db = getDb();
+  const ref = db.collection('contact_messages').doc(messageId);
+  const doc = await ref.get();
+
+  if (!doc.exists) {
+    throw new ApiError(404, 'Message not found');
+  }
+
+  const now = new Date();
+  await ref.update({
+    adminReply: reply,
+    adminReplyBy: authUser.name || authUser.email || 'Admin',
+    adminReplyAt: now,
+    status: 'replied',
+    updatedAt: now,
+  });
+
+  const updated = await ref.get();
+  return mapContactMessageDoc(updated);
+}
+
+function mapReviewDoc(doc) {
+  const data = doc.data() || {};
+
+  return {
+    id: doc.id,
+    userId: data.userId || null,
+    name: String(data.name || 'Anonymous').trim(),
+    email: String(data.email || '').trim().toLowerCase(),
+    rating: Number(data.rating || 0),
+    comment: String(data.comment || '').trim(),
+    date: String(data.date || toIso(data.createdAt || data.updatedAt).slice(0, 10)),
+    adminReply: typeof data.adminReply === 'string' ? data.adminReply.trim() : null,
+    adminReplyBy: typeof data.adminReplyBy === 'string' ? data.adminReplyBy.trim() : null,
+    adminReplyAt: data.adminReplyAt ? toIso(data.adminReplyAt) : null,
+    createdAt: toIso(data.createdAt),
+    updatedAt: toIso(data.updatedAt),
+  };
+}
+
+async function listReviews() {
+  const db = getDb();
+  const snapshot = await db.collection('reviews').get();
+
+  return snapshot.docs
+    .map(mapReviewDoc)
+    .filter((review) => review.rating >= 1 && review.rating <= 5 && review.comment)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+async function createReview(payload, authUser) {
+  if (!authUser?.sub) {
+    throw new ApiError(401, 'Authentication required');
+  }
+
+  const rating = Number(payload?.rating || 0);
+  const comment = String(payload?.comment || '').trim();
+
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw new ApiError(400, 'rating must be an integer between 1 and 5');
+  }
+
+  if (!comment) {
+    throw new ApiError(400, 'comment is required');
+  }
+
+  const db = getDb();
+  const now = new Date();
+  const date = toIso(now).slice(0, 10);
+
+  const reviewPayload = {
+    userId: authUser.sub,
+    name: authUser.name || 'User',
+    email: authUser.email || '',
+    rating,
+    comment,
+    date,
+    adminReply: null,
+    adminReplyBy: null,
+    adminReplyAt: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const ref = await db.collection('reviews').add(reviewPayload);
+  const created = await ref.get();
+  return mapReviewDoc(created);
+}
+
+async function replyToReview(reviewId, payload, authUser) {
+  if (!authUser?.sub || authUser.role !== 'admin') {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  const reply = String(payload?.reply || '').trim();
+  if (!reply) {
+    throw new ApiError(400, 'reply is required');
+  }
+
+  const db = getDb();
+  const ref = db.collection('reviews').doc(reviewId);
+  const doc = await ref.get();
+
+  if (!doc.exists) {
+    throw new ApiError(404, 'Review not found');
+  }
+
+  const now = new Date();
+  await ref.update({
+    adminReply: reply,
+    adminReplyBy: authUser.name || authUser.email || 'Admin',
+    adminReplyAt: now,
+    updatedAt: now,
+  });
+
+  const updated = await ref.get();
+  return mapReviewDoc(updated);
+}
+
 module.exports = {
   getAppSettings,
   updateAppSettings,
@@ -1092,4 +1263,10 @@ module.exports = {
   getRevenueSeries,
   listUsers,
   createContactMessage,
+  listContactMessages,
+  listContactMessagesByEmail,
+  replyToContactMessage,
+  listReviews,
+  createReview,
+  replyToReview,
 };

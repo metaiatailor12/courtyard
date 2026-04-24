@@ -21,6 +21,12 @@ const {
 	getRevenueSeries,
 	listUsers,
 	createContactMessage,
+	listContactMessages,
+	listContactMessagesByEmail,
+	replyToContactMessage,
+	listReviews,
+	createReview,
+	replyToReview,
 } = require('./firestoreServices');
 const { uploadGalleryImage } = require('./cloudinary');
 
@@ -55,6 +61,25 @@ router.get('/health', (_req, res) => {
 router.post('/contact-messages', asyncHandler(async (req, res) => {
 	const message = await createContactMessage(req.body || {});
 	res.status(201).json({ message });
+}));
+
+router.get('/contact-messages-by-email', asyncHandler(async (req, res) => {
+	const email = typeof req.query.email === 'string' ? req.query.email.trim().toLowerCase() : '';
+	if (!email) {
+		return res.json({ messages: [] });
+	}
+	const messages = await listContactMessagesByEmail(email);
+	res.json({ messages });
+}));
+
+router.get('/reviews', asyncHandler(async (_req, res) => {
+	const reviews = await listReviews();
+	res.json({ reviews });
+}));
+
+router.post('/reviews', requireAuth, asyncHandler(async (req, res) => {
+	const review = await createReview(req.body || {}, req.auth);
+	res.status(201).json({ review });
 }));
 
 router.get('/settings', asyncHandler(async (_req, res) => {
@@ -154,6 +179,26 @@ router.get('/admin/dashboard/revenue', requireAuth, requireRole('admin'), asyncH
 router.get('/admin/users', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => {
 	const users = await listUsers();
 	res.json({ users });
+}));
+
+router.get('/admin/reviews', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => {
+	const reviews = await listReviews();
+	res.json({ reviews });
+}));
+
+router.patch('/admin/reviews/:reviewId/reply', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+	const review = await replyToReview(req.params.reviewId, req.body || {}, req.auth);
+	res.json({ review });
+}));
+
+router.get('/admin/messages', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => {
+	const messages = await listContactMessages();
+	res.json({ messages });
+}));
+
+router.patch('/admin/messages/:messageId/reply', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+	const message = await replyToContactMessage(req.params.messageId, req.body || {}, req.auth);
+	res.json({ message });
 }));
 
 router.post('/admin/bookings', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {

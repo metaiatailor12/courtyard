@@ -17,6 +17,8 @@ import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { AdminBookings } from "./pages/admin/AdminBookings";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 import { AdminGalleryPage } from "./pages/admin/AdminGalleryPage";
+import { AdminReviews } from "./pages/admin/AdminReviews";
+import { AdminMessages } from "./pages/admin/AdminMessages";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { NotFound } from "./pages/NotFound";
@@ -122,6 +124,14 @@ export const router = createBrowserRouter([
       {
         path: "admin/settings",
         element: <AdminSettings />,
+      },
+      {
+        path: "admin/reviews",
+        element: <AdminReviews />,
+      },
+      {
+        path: "admin/messages",
+        element: <AdminMessages />,
       },
       {
         path: "admin/settings/gallery",

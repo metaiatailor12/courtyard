@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Phone, Mail, MapPin, Clock, Send, CheckCircle, MessageCircle, HelpCircle, Calendar, Navigation } from 'lucide-react';
+import { Phone, Mail, MapPin, Clock, Send, CheckCircle, MessageCircle, HelpCircle, Calendar, Navigation, ChevronDown } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { GlassCard } from '../components/GlassCard';
 import { Button } from '../components/Button';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
 import { useLandingPage } from '../context/LandingPageContext';
+import { useEffect } from 'react';
 
 const quickActionIcons = {
   Calendar,
@@ -22,7 +24,11 @@ const actionStyles: Record<string, { container: string; icon: string }> = {
 export const ContactPage = () => {
   const navigate = useNavigate();
   const { content } = useLandingPage();
-  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
+  const RAW_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
+  const API_BASE_URL =
+    typeof window !== 'undefined' && window.location.hostname.includes('localhost')
+      ? '/api'
+      : RAW_API_BASE_URL;
   const venueAddress = content.venueAddress || '';
   const mapsLink = venueAddress ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venueAddress)}` : 'https://www.google.com/maps';
   const [formData, setFormData] = useState({
@@ -35,6 +41,33 @@ export const ContactPage = () => {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [userMessages, setUserMessages] = useState<any[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+
+  const [isCheckRepliesOpen, setIsCheckRepliesOpen] = useState(false);
+  const [checkEmail, setCheckEmail] = useState('');
+  const [checkMessages, setCheckMessages] = useState<any[]>([]);
+  const [isChecking, setIsChecking] = useState(false);
+
+  const handleCheckReplies = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!checkEmail.trim()) return;
+
+    setIsChecking(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/contact-messages-by-email?email=${encodeURIComponent(checkEmail)}`);
+      const payload = await response.json().catch(() => null);
+      if (response.ok && Array.isArray(payload?.messages)) {
+        setCheckMessages(payload.messages.filter((msg: any) => msg.adminReply));
+      } else {
+        setCheckMessages([]);
+      }
+    } catch {
+      setCheckMessages([]);
+    } finally {
+      setIsChecking(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,6 +108,37 @@ export const ContactPage = () => {
       [e.target.name]: e.target.value,
     });
   };
+
+  const loadUserMessages = async (email: string) => {
+    if (!email.trim()) {
+      setUserMessages([]);
+      return;
+    }
+
+    setLoadingMessages(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/contact-messages-by-email?email=${encodeURIComponent(email)}`);
+      const payload = await response.json().catch(() => null);
+      if (response.ok && Array.isArray(payload?.messages)) {
+        setUserMessages(payload.messages.filter((msg: any) => msg.adminReply));
+      } else {
+        setUserMessages([]);
+      }
+    } catch {
+      setUserMessages([]);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.email) {
+        void loadUserMessages(formData.email);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData.email, API_BASE_URL]);
 
   const quickActions = Array.isArray(content.contactQuickActions) ? content.contactQuickActions : [];
   const faqs = Array.isArray(content.contactFaqs) ? content.contactFaqs : [];
@@ -395,12 +459,65 @@ export const ContactPage = () => {
                         <Send className="w-5 h-5 mr-2" />
                         {submitting ? 'Sending...' : 'Send Message'}
                       </Button>
-                      <p className="text-sm text-gray-500">We typically respond within 24 hours</p>
+                      <p className="text-sm text-gray-500 hidden sm:block">We typically respond within 24 hours</p>
+                      <button
+                        type="button"
+                        onClick={() => setIsCheckRepliesOpen(true)}
+                        className="ml-auto flex items-center gap-2 text-sm text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-4 py-2 rounded-full transition-all duration-300 font-semibold border border-emerald-200 hover:shadow-md active:scale-95"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        Check Replies
+                      </button>
                     </div>
                   </form>
                 )}
               </GlassCard>
             </motion.div>
+
+            {/* Your Messages Section */}
+            {formData.email && userMessages.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="mt-8"
+                id="your-messages"
+              >
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Messages</h2>
+                <div className="space-y-3">
+                  {userMessages.map((msg) => (
+                    <GlassCard key={msg.id} className="p-4 bg-gradient-to-br from-blue-50 to-cyan-50">
+                      <div className="space-y-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-gray-900 text-sm">{msg.subject}</h3>
+                            <span
+                              className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                                msg.adminReply
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-orange-100 text-orange-700'
+                              }`}
+                            >
+                              {msg.adminReply ? '✓ Replied' : 'Pending'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-600 mb-2">{msg.createdAt?.split('T')[0]}</p>
+                          <p className="text-xs text-gray-700">{msg.message}</p>
+                        </div>
+
+                        {msg.adminReply && (
+                          <div className="bg-green-100 border border-green-200 p-3 rounded-lg">
+                            <p className="text-xs font-semibold text-green-800 mb-1">💚 Admin Reply</p>
+                            <p className="text-xs text-green-800">{msg.adminReply}</p>
+                            <p className="text-xs text-green-600 mt-1">by {msg.adminReplyBy}</p>
+                          </div>
+                        )}
+                      </div>
+                    </GlassCard>
+                  ))}
+                </div>
+              </motion.div>
+            )}
 
             {/* FAQs Section */}
             <motion.div
@@ -441,6 +558,72 @@ export const ContactPage = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={isCheckRepliesOpen} onOpenChange={setIsCheckRepliesOpen}>
+        <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-gray-800">Check Your Messages</DialogTitle>
+            <DialogDescription>
+              Enter the email address you used to send your message to see our replies.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleCheckReplies} className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={checkEmail}
+                  onChange={(e) => setCheckEmail(e.target.value)}
+                  placeholder="john@example.com"
+                  required
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+                <Button type="submit" variant="primary" disabled={isChecking}>
+                  {isChecking ? 'Checking...' : 'Check'}
+                </Button>
+              </div>
+            </div>
+          </form>
+
+          {checkMessages.length > 0 ? (
+            <div className="mt-6 space-y-3">
+              <h4 className="font-semibold text-gray-800">Your Messages</h4>
+              {checkMessages.map((msg) => (
+                <div key={msg.id} className="p-4 rounded-lg bg-gray-50 border border-gray-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="font-semibold text-gray-900 text-sm">{msg.subject}</h3>
+                    <span
+                      className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                        msg.adminReply
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-orange-100 text-orange-700'
+                      }`}
+                    >
+                      {msg.adminReply ? '✓ Replied' : 'Pending'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-2">{msg.createdAt?.split('T')[0]}</p>
+                  <p className="text-xs text-gray-700">{msg.message}</p>
+
+                  {msg.adminReply && (
+                    <div className="mt-3 bg-green-50 border border-green-200 p-3 rounded-lg">
+                      <p className="text-xs font-semibold text-green-800 mb-1">💚 Admin Reply</p>
+                      <p className="text-xs text-green-800">{msg.adminReply}</p>
+                      {msg.adminReplyBy && <p className="text-xs text-green-600 mt-1">by {msg.adminReplyBy}</p>}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : checkEmail && !isChecking && (
+            <div className="mt-4 p-4 text-center text-sm text-gray-500 bg-gray-50 rounded-lg">
+              No replies found for this email address.
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
