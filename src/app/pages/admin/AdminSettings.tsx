@@ -262,7 +262,7 @@ export const AdminSettings = () => {
                 onClick={() => setActiveTab(tab.id as 'general' | 'landing')}
                 className={`flex items-center gap-2 px-6 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'border-yellow-800 text-yellow-800'
+                    ? 'border-green-900 text-green-900'
                     : 'border-transparent text-gray-600 hover:text-gray-800'
                 }`}
               >
@@ -280,7 +280,7 @@ export const AdminSettings = () => {
             <GlassCard className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-yellow-700" />
+                  <DollarSign className="w-6 h-6 text-green-900" />
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold">Pricing Configuration</h2>
@@ -463,7 +463,7 @@ export const AdminSettings = () => {
               </div>
               <Button
                 onClick={handleSaveLanding}
-                className="bg-gradient-to-r from-yellow-700 to-yellow-600 text-white flex items-center gap-2"
+                className="bg-gradient-to-r from-green-900 to-green-800 text-white flex items-center gap-2"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
@@ -473,8 +473,8 @@ export const AdminSettings = () => {
             <GlassCard className="p-6 border border-yellow-100 bg-white/80">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center shrink-0">
-                    <Image className="w-6 h-6 text-yellow-800" />
+                  <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center shrink-0">
+                    <Image className="w-6 h-6 text-green-900" />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-800">User Home Gallery</h3>
@@ -501,7 +501,7 @@ export const AdminSettings = () => {
               {/* Hero Section */}
               <GlassCard className="p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Layout className="w-5 h-5 text-yellow-800" />
+                  <Layout className="w-5 h-5 text-green-900" />
                   Hero Section
                 </h3>
 
@@ -542,7 +542,7 @@ export const AdminSettings = () => {
               <GlassCard className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <Star className="w-5 h-5 text-yellow-800" />
+                    <Star className="w-5 h-5 text-green-900" />
                     Features
                   </h3>
                   <Button size="sm" onClick={addFeature} variant="outline">
@@ -595,7 +595,7 @@ export const AdminSettings = () => {
               <GlassCard className="p-6 lg:col-span-2">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <Award className="w-5 h-5 text-yellow-800" />
+                    <Award className="w-5 h-5 text-green-900" />
                     Statistics
                   </h3>
                   <Button size="sm" onClick={addStat} variant="outline">
@@ -635,7 +635,7 @@ export const AdminSettings = () => {
 
               <GlassCard className="p-6 lg:col-span-2">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Image className="w-5 h-5 text-yellow-800" />
+                  <Image className="w-5 h-5 text-green-900" />
                   About Section Image
                 </h3>
 

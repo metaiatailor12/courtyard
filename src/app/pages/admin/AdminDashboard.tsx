@@ -177,7 +177,7 @@ export const AdminDashboard = () => {
       value: `₹${liveStats.totalRevenue.toLocaleString()}`,
       change: monthLabel,
       icon: <DollarSign className="w-6 h-6" />,
-      color: 'from-yellow-600 to-yellow-700',
+      color: 'from-green-900 to-green-800',
     },
     {
       label: 'Active Users',
@@ -215,7 +215,7 @@ export const AdminDashboard = () => {
                 <div className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center text-white`}>
                   {stat.icon}
                 </div>
-                <span className="text-xs md:text-sm font-medium text-yellow-700 bg-green-50 px-2 py-1 rounded">
+                <span className="text-xs md:text-sm font-medium text-green-900 bg-green-50 px-2 py-1 rounded">
                   {stat.change}
                 </span>
               </div>
@@ -277,7 +277,7 @@ export const AdminDashboard = () => {
               </button>
               <button 
                 onClick={() => setShowRevenueModal(true)}
-                className="w-full p-3 md:p-4 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white rounded-xl hover:from-yellow-700 hover:to-green-700 transition-all flex items-center justify-center md:justify-start gap-3 text-sm md:text-base"
+                className="w-full p-3 md:p-4 bg-gradient-to-r from-green-900 to-green-800 text-white rounded-xl hover:from-green-950 hover:to-green-900 transition-all flex items-center justify-center md:justify-start gap-3 text-sm md:text-base"
               >
                 <DollarSign className="w-4 h-4 md:w-5 md:h-5" />
                 <span>Revenue Report</span>
@@ -317,9 +317,9 @@ export const AdminDashboard = () => {
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-gradient-to-br from-green-50 to-yellow-50 p-6 rounded-xl border border-green-100">
-                  <p className="text-yellow-700 text-sm font-medium mb-2">Total Revenue</p>
+                  <p className="text-green-900 text-sm font-medium mb-2">Total Revenue</p>
                   <p className="text-3xl font-bold text-gray-800">₹{liveStats.totalRevenue.toLocaleString()}</p>
-                  <p className="text-xs text-yellow-700 mt-2">Live current month value</p>
+                  <p className="text-xs text-green-900 mt-2">Live current month value</p>
                 </div>
                 <div className="bg-gradient-to-br from-blue-50 to-yellow-50 p-6 rounded-xl border border-blue-100">
                   <p className="text-blue-600 text-sm font-medium mb-2">Total Bookings</p>
@@ -339,7 +339,7 @@ export const AdminDashboard = () => {
                 <div className="space-y-3">
                   {[
                     { label: 'Court Bookings', amount: liveStats.bookingRevenue, percentage: liveStats.totalRevenue > 0 ? (liveStats.bookingRevenue / liveStats.totalRevenue) * 100 : 0, color: 'bg-blue-500' },
-                    { label: 'Subscriptions', amount: liveStats.subscriptionRevenue, percentage: liveStats.totalRevenue > 0 ? (liveStats.subscriptionRevenue / liveStats.totalRevenue) * 100 : 0, color: 'bg-yellow-600' },
+                    { label: 'Subscriptions', amount: liveStats.subscriptionRevenue, percentage: liveStats.totalRevenue > 0 ? (liveStats.subscriptionRevenue / liveStats.totalRevenue) * 100 : 0, color: 'bg-green-900' },
                   ].map((item, index) => (
                     <div key={index}>
                       <div className="flex items-center justify-between mb-2">
@@ -361,7 +361,7 @@ export const AdminDashboard = () => {
                   {revenueChartData.map((item, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg">
                       <span className="text-sm font-medium text-gray-700">{item.month}</span>
-                      <span className="text-sm font-semibold text-yellow-700">₹{item.revenue.toLocaleString()}</span>
+                      <span className="text-sm font-semibold text-green-900">₹{item.revenue.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -393,15 +393,15 @@ export const AdminDashboard = () => {
             <div className="p-6 space-y-6">
               {/* User Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-yellow-50 p-6 rounded-xl border border-blue-100">
-                  <p className="text-blue-600 text-sm font-medium mb-2">Total Users</p>
+                <div className="bg-gradient-to-br from-blue-50 to-green-50 p-6 rounded-xl border border-blue-100">
+                  <p className="text-green-900 text-sm font-medium mb-2">Total Users</p>
                   <p className="text-3xl font-bold text-gray-800">{users.length.toLocaleString()}</p>
                   <p className="text-xs text-blue-600 mt-2">Live users from database</p>
                 </div>
-                <div className="bg-gradient-to-br from-green-50 to-yellow-50 p-6 rounded-xl border border-green-100">
-                  <p className="text-yellow-700 text-sm font-medium mb-2">Active Users</p>
+                <div className="bg-gradient-to-br from-green-50 to-green-50 p-6 rounded-xl border border-green-100">
+                  <p className="text-green-900 text-sm font-medium mb-2">Active Users</p>
                   <p className="text-3xl font-bold text-gray-800">{users.filter(user => user.status !== 'Inactive').length.toLocaleString()}</p>
-                  <p className="text-xs text-yellow-700 mt-2">Registered and active users</p>
+                  <p className="text-xs text-green-900 mt-2">Registered and active users</p>
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-6 rounded-xl border border-purple-100">
                   <p className="text-purple-600 text-sm font-medium mb-2">Subscribers</p>
@@ -422,7 +422,7 @@ export const AdminDashboard = () => {
                     users.map((user) => (
                       <div key={user.id} className="flex items-center justify-between p-4 bg-white rounded-lg hover:shadow-md transition-shadow">
                         <div className="flex items-center gap-4 flex-1">
-                          <div className="w-12 h-12 bg-gradient-to-br from-yellow-700 to-yellow-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          <div className="w-12 h-12 bg-gradient-to-br from-green-900 to-green-800 rounded-full flex items-center justify-center text-white font-semibold">
                             {user.name.split(' ').map(n => n[0]).join('')}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -453,7 +453,7 @@ export const AdminDashboard = () => {
 
               {/* Action Buttons */}
               <div className="flex gap-3">
-                <button className="flex-1 px-4 py-3 bg-gradient-to-r from-yellow-700 to-yellow-600 text-white rounded-xl hover:from-yellow-700 hover:to-yellow-700 transition-all font-medium">
+                <button className="flex-1 px-4 py-3 bg-gradient-to-r from-green-900 to-green-800 text-white rounded-xl hover:from-green-950 hover:to-green-900 transition-all font-medium">
                   Export Users
                 </button>
                 <button className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium">

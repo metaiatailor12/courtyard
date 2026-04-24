@@ -178,8 +178,8 @@ export const AdminReviews = () => {
                 <p className="text-gray-700 mb-4">{review.comment}</p>
 
                 {review.adminReply ? (
-                  <div className="mb-4 rounded-xl border border-yellow-100 bg-yellow-50 p-3">
-                    <p className="text-xs font-semibold text-yellow-900 mb-1 flex items-center gap-2">
+                  <div className="mb-4 rounded-xl border border-green-100 bg-green-50 p-3">
+                    <p className="text-xs font-semibold text-green-900 mb-1 flex items-center gap-2">
                       <MessageSquare className="w-4 h-4" />
                       Reply from {review.adminReplyBy || 'Admin'}
                     </p>

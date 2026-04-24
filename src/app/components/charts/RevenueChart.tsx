@@ -46,7 +46,7 @@ export const RevenueChart = memo(({ data }: RevenueChartProps) => {
               
               {/* Bar */}
               <div
-                className="w-full bg-yellow-700 rounded-t-lg transition-all duration-300 hover:bg-yellow-800 max-w-[60px]"
+                className="w-full bg-green-900 rounded-t-lg transition-all duration-300 hover:bg-green-950 max-w-[60px]"
                 style={{ height: `${height}%` }}
               />
               

@@ -25,7 +25,7 @@ export const Input: React.FC<InputProps> = ({ label, error, icon, className = ''
         )}
         <input
           type={type}
-          className={`w-full px-4 py-3 ${icon ? 'pl-12' : ''} bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#808000] focus:border-transparent transition-all ${
+          className={`w-full px-4 py-3 ${icon ? 'pl-12' : ''} bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${
             error ? 'border-red-500 focus:ring-red-500' : ''
           } ${isDateInput ? 'cursor-pointer' : ''} ${className}`}
           style={isDateInput ? {

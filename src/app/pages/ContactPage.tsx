@@ -16,7 +16,7 @@ const quickActionIcons = {
 };
 
 const actionStyles: Record<string, { container: string; icon: string }> = {
-  emerald: { container: 'bg-yellow-100', icon: 'text-yellow-800' },
+  emerald: { container: 'bg-green-100', icon: 'text-green-900' },
   blue: { container: 'bg-blue-100', icon: 'text-blue-600' },
   purple: { container: 'bg-purple-100', icon: 'text-purple-600' },
 };
@@ -160,11 +160,11 @@ export const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-yellow-50/30">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-green-50/30">
       <Navbar />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-yellow-700 to-yellow-600 text-white py-12 md:py-16">
+      <div className="bg-gradient-to-r from-green-900 to-green-800 text-white py-12 md:py-16">
         <div className="container mx-auto px-4 text-center">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -177,7 +177,7 @@ export const ContactPage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-lg md:text-xl text-yellow-50 max-w-2xl mx-auto"
+            className="text-lg md:text-xl text-green-50 max-w-2xl mx-auto"
           >
             We're here to help! Whether you have questions, need support, or want to give feedback
           </motion.p>
@@ -235,7 +235,7 @@ export const ContactPage = () => {
                     </a>
                     <a
                       href={content.venueEmail ? `mailto:${content.venueEmail}` : '#'}
-                      className="block text-sm text-yellow-800 hover:text-yellow-900 font-medium transition-colors"
+                      className="block text-sm text-green-900 hover:text-green-950 font-medium transition-colors"
                     >
                       {content.venueEmail || ''}
                     </a>
@@ -253,7 +253,7 @@ export const ContactPage = () => {
             >
               <GlassCard className="p-5 hover:shadow-lg transition-all duration-300">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-yellow-700 to-yellow-800 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-900 to-green-950 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
                     <Mail className="w-6 h-6 text-white" />
                   </div>
                   <div className="flex-1">
@@ -289,7 +289,7 @@ export const ContactPage = () => {
                     </p>
                     <button
                       onClick={() => window.open(mapsLink, '_blank')}
-                      className="flex items-center gap-1 text-xs text-yellow-800 hover:text-yellow-900 font-medium transition-colors"
+                      className="flex items-center gap-1 text-xs text-green-900 hover:text-green-950 font-medium transition-colors"
                     >
                       <Navigation className="w-3 h-3" />
                       Get Directions
@@ -341,7 +341,7 @@ export const ContactPage = () => {
                     animate={{ scale: 1, opacity: 1 }}
                     className="flex flex-col items-center justify-center py-16"
                   >
-                    <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-yellow-700 rounded-full flex items-center justify-center mb-6 shadow-xl">
+                    <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-900 rounded-full flex items-center justify-center mb-6 shadow-xl">
                       <CheckCircle className="w-10 h-10 text-white" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-800 mb-3">Message Sent Successfully!</h3>
@@ -443,7 +443,7 @@ export const ContactPage = () => {
                         onChange={handleChange}
                         required
                         rows={6}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-yellow-700 focus:border-transparent resize-none transition-all"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-700 focus:border-transparent resize-none transition-all"
                         placeholder="Tell us how we can help you..."
                       />
                       <p className="text-xs text-gray-500 mt-2">Please provide as much detail as possible</p>
@@ -463,7 +463,7 @@ export const ContactPage = () => {
                       <button
                         type="button"
                         onClick={() => setIsCheckRepliesOpen(true)}
-                        className="ml-auto flex items-center gap-2 text-sm text-yellow-900 hover:text-emerald-800 bg-yellow-50 hover:bg-yellow-100 px-4 py-2 rounded-full transition-all duration-300 font-semibold border border-yellow-200 hover:shadow-md active:scale-95"
+                        className="ml-auto flex items-center gap-2 text-sm text-green-900 hover:text-emerald-800 bg-green-50 hover:bg-green-100 px-4 py-2 rounded-full transition-all duration-300 font-semibold border border-green-200 hover:shadow-md active:scale-95"
                       >
                         <MessageCircle className="w-4 h-4" />
                         Check Replies
@@ -486,7 +486,7 @@ export const ContactPage = () => {
                 <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Messages</h2>
                 <div className="space-y-3">
                   {userMessages.map((msg) => (
-                    <GlassCard key={msg.id} className="p-4 bg-gradient-to-br from-blue-50 to-yellow-50">
+                    <GlassCard key={msg.id} className="p-4 bg-gradient-to-br from-blue-50 to-green-50">
                       <div className="space-y-3">
                         <div>
                           <div className="flex items-center gap-2 mb-2">
@@ -509,7 +509,7 @@ export const ContactPage = () => {
                           <div className="bg-green-100 border border-green-200 p-3 rounded-lg">
                             <p className="text-xs font-semibold text-green-800 mb-1">💚 Admin Reply</p>
                             <p className="text-xs text-green-800">{msg.adminReply}</p>
-                            <p className="text-xs text-yellow-700 mt-1">by {msg.adminReplyBy}</p>
+                            <p className="text-xs text-green-900 mt-1">by {msg.adminReplyBy}</p>
                           </div>
                         )}
                       </div>
@@ -533,7 +533,7 @@ export const ContactPage = () => {
                   {faqs.length > 0 ? faqs.map((faq) => (
                     <div key={faq.id} className="pb-4 border-b border-gray-200 last:border-0">
                       <h4 className="font-semibold text-gray-800 mb-2 flex items-start gap-2">
-                        <HelpCircle className="w-5 h-5 text-yellow-800 flex-shrink-0 mt-0.5" />
+                        <HelpCircle className="w-5 h-5 text-green-900 flex-shrink-0 mt-0.5" />
                         {faq.question}
                       </h4>
                       <p className="text-gray-600 text-sm ml-7">{faq.answer}</p>
@@ -547,7 +547,7 @@ export const ContactPage = () => {
                     Can't find what you're looking for?{' '}
                     <button
                       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                      className="text-yellow-800 hover:text-yellow-900 font-semibold"
+                      className="text-green-900 hover:text-green-950 font-semibold"
                     >
                       Contact us directly
                     </button>
@@ -578,7 +578,7 @@ export const ContactPage = () => {
                   onChange={(e) => setCheckEmail(e.target.value)}
                   placeholder="john@example.com"
                   required
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-transparent"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-700 focus:border-transparent"
                 />
                 <Button type="submit" variant="primary" disabled={isChecking}>
                   {isChecking ? 'Checking...' : 'Check'}
@@ -611,7 +611,7 @@ export const ContactPage = () => {
                     <div className="mt-3 bg-green-50 border border-green-200 p-3 rounded-lg">
                       <p className="text-xs font-semibold text-green-800 mb-1">💚 Admin Reply</p>
                       <p className="text-xs text-green-800">{msg.adminReply}</p>
-                      {msg.adminReplyBy && <p className="text-xs text-yellow-700 mt-1">by {msg.adminReplyBy}</p>}
+                      {msg.adminReplyBy && <p className="text-xs text-green-900 mt-1">by {msg.adminReplyBy}</p>}
                     </div>
                   )}
                 </div>

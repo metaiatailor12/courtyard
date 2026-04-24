@@ -336,13 +336,13 @@ export const AdminGalleryPage = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Image File</label>
-                <label className="flex items-center justify-center w-full min-h-32 border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50 hover:bg-yellow-50 hover:border-[#808000] transition-colors cursor-pointer">
+                <label className="flex items-center justify-center w-full min-h-32 border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50 hover:bg-green-50 hover:border-green-600 transition-colors cursor-pointer">
                   <div className="text-center p-6">
                     <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="font-medium text-gray-700">Click to choose an image</p>
                     <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG, WEBP</p>
                     {draft.fileName && (
-                      <p className="text-xs text-yellow-800 mt-2">Selected: {draft.fileName}</p>
+                      <p className="text-xs text-green-900 mt-2">Selected: {draft.fileName}</p>
                     )}
                   </div>
                   <input

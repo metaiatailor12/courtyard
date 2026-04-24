@@ -122,7 +122,7 @@ export const AdminMessages = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-yellow-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Navbar />
 
       <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -148,7 +148,7 @@ export const AdminMessages = () => {
           </GlassCard>
           <GlassCard className="p-3">
             <p className="text-xs text-gray-500">Replied</p>
-            <p className="text-lg font-bold text-yellow-700">{repliedMessages.length}</p>
+            <p className="text-lg font-bold text-green-900">{repliedMessages.length}</p>
           </GlassCard>
         </div>
 
@@ -206,7 +206,7 @@ export const AdminMessages = () => {
                       <div className="bg-green-100 p-2 rounded text-xs border border-green-200">
                         <p className="font-semibold text-green-800 mb-1">✓ Your Reply</p>
                         <p className="text-green-800">{msg.adminReply}</p>
-                        <p className="text-yellow-700 text-xs mt-1">by {msg.adminReplyBy}</p>
+                        <p className="text-green-900 text-xs mt-1">by {msg.adminReplyBy}</p>
                       </div>
                     )}
 

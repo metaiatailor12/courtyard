@@ -321,7 +321,7 @@ export const AdminBookings = () => {
                                   className="p-2 hover:bg-green-50 rounded-lg transition-colors"
                                   title="Edit Booking"
                                 >
-                                  <Edit className="w-4 h-4 text-yellow-700" />
+                                  <Edit className="w-4 h-4 text-green-900" />
                                 </button>
                                 <button
                                   onClick={() => handleCancelBooking(booking.id)}
@@ -468,7 +468,7 @@ export const AdminBookings = () => {
           </GlassCard>
           <GlassCard className="p-6">
             <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
-            <p className="text-2xl font-bold text-yellow-700">
+            <p className="text-2xl font-bold text-green-900">
               ₹{bookings.reduce((sum, b) => sum + b.totalAmount, 0)}
             </p>
           </GlassCard>

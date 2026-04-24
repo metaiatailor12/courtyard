@@ -224,7 +224,7 @@ export const UnifiedLogin = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-yellow-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 flex items-center justify-center p-4\">
       <div className="w-full max-w-md">
         <button
           onClick={() => navigate('/')}
@@ -301,7 +301,7 @@ export const UnifiedLogin = () => {
               Don't have an account?{' '}
               <Link
                 to="/user/register"
-                className="text-yellow-800 hover:text-yellow-900 font-semibold"
+                className="text-green-900 hover:text-green-950 font-semibold"
               >
                 Sign up
               </Link>
@@ -309,7 +309,7 @@ export const UnifiedLogin = () => {
             <p className="text-gray-600">
               <Link
                 to="/user/forgot-password"
-                className="text-yellow-800 hover:text-yellow-900 font-semibold"
+                className="text-green-900 hover:text-green-950 font-semibold"
               >
                 Forgot password?
               </Link>

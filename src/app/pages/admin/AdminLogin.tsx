@@ -53,7 +53,7 @@ export const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-blue-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <button
           onClick={() => navigate('/')}
@@ -65,7 +65,7 @@ export const AdminLogin = () => {
 
         <GlassCard className="p-8">
           <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="w-20 h-20 bg-gradient-to-br from-green-900 to-green-800 rounded-full flex items-center justify-center mx-auto mb-4">
               <Shield className="w-10 h-10 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Admin Portal</h1>
@@ -102,7 +102,7 @@ export const AdminLogin = () => {
             <Button 
               type="submit" 
               variant="primary" 
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700" 
+              className="w-full bg-gradient-to-r from-green-900 to-green-800 hover:from-green-950 hover:to-green-900" 
               loading={loading}
             >
               Login to Dashboard

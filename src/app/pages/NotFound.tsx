@@ -6,10 +6,10 @@ export const NotFound = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-yellow-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 flex items-center justify-center p-4">
       <div className="text-center max-w-md">
         <div className="mb-8">
-          <h1 className="text-9xl font-bold bg-gradient-to-r from-yellow-700 to-yellow-600 bg-clip-text text-transparent">
+          <h1 className="text-9xl font-bold bg-gradient-to-r from-green-900 to-green-800 bg-clip-text text-transparent">
             404
           </h1>
           <h2 className="text-3xl font-bold text-gray-800 mb-4">Page Not Found</h2>

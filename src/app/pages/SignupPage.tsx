@@ -76,13 +76,13 @@ export const SignupPage = () => {
 
   if (verificationSent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-50">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-50">
         <Navbar />
         <div className="container mx-auto px-4 py-12 max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
             <div className="flex justify-center mb-6">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <Mail className="w-8 h-8 text-yellow-700" />
+                <Mail className="w-8 h-8 text-green-900" />
               </div>
             </div>
             <h1 className="text-3xl font-bold text-gray-800 mb-3">Verify Your Email</h1>
@@ -111,7 +111,7 @@ export const SignupPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-50">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-50">
       <Navbar />
       <div className="container mx-auto px-4 py-12 max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -207,7 +207,7 @@ export const SignupPage = () => {
             Already have an account?{' '}
             <button
               onClick={() => navigate('/login')}
-              className="text-yellow-800 hover:text-yellow-900 font-semibold"
+              className="text-green-900 hover:text-green-950 font-semibold"
             >
               Sign in
             </button>

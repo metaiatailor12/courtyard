@@ -86,8 +86,8 @@ export const LandingPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full border border-yellow-200 mb-6">
-                <Zap className="w-4 h-4 text-yellow-800" />
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full border border-green-200 mb-6">
+                <Zap className="w-4 h-4 text-green-900" />
                 <span className="text-sm font-medium text-gray-700">Fast & Easy Booking</span>
               </div>
 
@@ -95,7 +95,7 @@ export const LandingPage = () => {
                 {heroWords.map((word, index) => (
                   <span key={`${word}-${index}`}>
                     {index === heroWords.length - 2 ? (
-                      <span className="bg-gradient-to-r from-yellow-700 to-yellow-600 bg-clip-text text-transparent">
+                      <span className="bg-gradient-to-r from-green-900 to-green-800 bg-clip-text text-transparent">
                         {word}{' '}
                       </span>
                     ) : (
@@ -112,7 +112,7 @@ export const LandingPage = () => {
               <div className="flex flex-wrap gap-4">
                 <Button
                   onClick={() => navigate('/login')}
-                  className="px-8 py-4 bg-gradient-to-r from-yellow-700 to-yellow-600 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 font-semibold"
+                    className="px-8 py-4 bg-gradient-to-r from-green-900 to-green-800 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 font-semibold"
                 >
                   {content.heroCTA || 'Login'}
                   <ArrowRight className="w-5 h-5 ml-2 inline" />
@@ -120,7 +120,7 @@ export const LandingPage = () => {
                 <Button
                   variant="outline"
                   onClick={() => navigate('/user/register')}
-                  className="px-8 py-4 bg-white/60 backdrop-blur-sm border-2 border-yellow-200 rounded-xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold"
+                  className="px-8 py-4 bg-white/60 backdrop-blur-sm border-2 border-green-200 rounded-xl hover:bg-white hover:shadow-lg transition-all duration-300 font-semibold"
                 >
                   {content.heroSecondaryButton}
                 </Button>
@@ -136,7 +136,7 @@ export const LandingPage = () => {
                     transition={{ delay: 0.2 + index * 0.1 }}
                   >
                     <div className="text-center">
-                      <p className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-yellow-700 to-yellow-600 bg-clip-text text-transparent">
+                      <p className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-green-900 to-green-800 bg-clip-text text-transparent">
                         {stat.value}
                       </p>
                       <p className="text-xs md:text-sm text-gray-600 mt-1">{stat.label}</p>
@@ -190,7 +190,7 @@ export const LandingPage = () => {
                           type="button"
                           onClick={() => setCurrentSlide(index)}
                           className={`h-2 rounded-full transition-all duration-300 ${
-                            index === currentSlide ? 'w-8 bg-yellow-700' : 'w-2 bg-gray-300 hover:bg-gray-400'
+                          index === currentSlide ? 'w-8 bg-green-900' : 'w-2 bg-gray-300 hover:bg-gray-400'
                           }`}
                           aria-label={`Show slide ${index + 1}`}
                         />
@@ -234,7 +234,7 @@ export const LandingPage = () => {
                   transition={{ delay: index * 0.1 }}
                 >
                   <GlassCard className="p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 group">
-                    <div className="w-14 h-14 bg-gradient-to-br from-yellow-700 to-yellow-600 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <div className="w-14 h-14 bg-gradient-to-br from-green-900 to-green-800 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
                       <IconComponent className="w-7 h-7 text-white" />
                     </div>
                     <h3 className="text-xl font-bold text-gray-800 mb-2">{feature.title}</h3>
@@ -298,8 +298,8 @@ export const LandingPage = () => {
                     transition={{ delay: index * 0.1 }}
                     className="flex items-center gap-3"
                   >
-                    <div className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-4 h-4 text-yellow-800" />
+                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-4 h-4 text-green-900" />
                     </div>
                     <span className="text-gray-700">{item}</span>
                   </motion.div>
@@ -308,7 +308,7 @@ export const LandingPage = () => {
 
               <Button
                 onClick={() => navigate('/user/booking')}
-                className="mt-8 px-8 py-4 bg-gradient-to-r from-yellow-700 to-yellow-600 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 font-semibold"
+                className="mt-8 px-8 py-4 bg-gradient-to-r from-green-900 to-green-800 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 font-semibold"
               >
                 Start Booking Now
                 <ArrowRight className="w-5 h-5 ml-2 inline" />
@@ -319,7 +319,7 @@ export const LandingPage = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-12 md:py-20 bg-gradient-to-r from-yellow-700 to-yellow-600">
+      <section className="py-12 md:py-20 bg-gradient-to-r from-green-900 to-green-800">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {content.stats.map((stat, index) => (
@@ -332,7 +332,7 @@ export const LandingPage = () => {
                 className="text-center text-white"
               >
                 <p className="text-4xl md:text-5xl font-bold mb-2">{stat.value}</p>
-                <p className="text-yellow-100 text-sm md:text-base">{stat.label}</p>
+                <p className="text-green-100 text-sm md:text-base">{stat.label}</p>
               </motion.div>
             ))}
           </div>
@@ -395,7 +395,7 @@ export const LandingPage = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <GlassCard className="p-8 md:p-12 text-center bg-gradient-to-br from-yellow-50 to-yellow-50 border-2 border-yellow-200">
+            <GlassCard className="p-8 md:p-12 text-center bg-gradient-to-br from-green-50 to-green-50 border-2 border-green-200">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
                 Ready to Book Your Court?
               </h2>
@@ -405,7 +405,7 @@ export const LandingPage = () => {
               <div className="flex flex-wrap gap-4 justify-center">
                 <Button
                   onClick={() => navigate('/user/booking')}
-                  className="px-8 py-4 bg-gradient-to-r from-yellow-700 to-yellow-600 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 font-semibold text-lg"
+                  className="px-8 py-4 bg-gradient-to-r from-green-900 to-green-800 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 font-semibold text-lg"
                 >
                   Book Your First Court
                   <ArrowRight className="w-5 h-5 ml-2 inline" />
@@ -413,7 +413,7 @@ export const LandingPage = () => {
                 <Button
                   variant="outline"
                   onClick={() => navigate('/user/subscription')}
-                  className="px-8 py-4 bg-white border-2 border-yellow-800 text-yellow-800 rounded-xl hover:bg-yellow-50 hover:shadow-lg transition-all duration-300 font-semibold text-lg"
+                  className="px-8 py-4 bg-white border-2 border-green-900 text-green-900 rounded-xl hover:bg-green-50 hover:shadow-lg transition-all duration-300 font-semibold text-lg"
                 >
                   View Subscriptions
                 </Button>
@@ -426,7 +426,7 @@ export const LandingPage = () => {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-8">
         <div className="container mx-auto px-4 text-center">
-          <div className="text-2xl font-bold bg-gradient-to-r from-yellow-700-400 to-yellow-400 bg-clip-text text-transparent mb-4">
+          <div className="text-2xl font-bold bg-gradient-to-r from-green-900 to-green-800 bg-clip-text text-transparent mb-4">
             thecourtyard
           </div>
           <p className="text-gray-400 text-sm">
