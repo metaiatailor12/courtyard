@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: thecourtyard-api
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: FIREBASE_PROJECT_ID
+        fromDatabase:
+          name: firebase
+          property: projectId
+      - key: FIREBASE_PRIVATE_KEY
+        fromDatabase:
+          name: firebase
+          property: privateKey
+      - key: FIREBASE_CLIENT_EMAIL
+        fromDatabase:
+          name: firebase
+          property: clientEmail
+      - key: FIREBASE_STORAGE_BUCKET
+        fromDatabase:
+          name: firebase
+          property: storageBucket
+      - key: JWT_SECRET
+        value: your_jwt_secret_here_change_in_production
+      - key: GMAIL_ADMIN_EMAIL
+        value: your_gmail@gmail.com
+      - key: GMAIL_APP_PASSWORD
+        fromDatabase:
+          name: credentials
+          property: gmailPassword
+      - key: CLIENT_ORIGIN
+        value: https://thecourtyard.vercel.app
+      - key: SUPABASE_URL
+        value: your_supabase_url
+      - key: SUPABASE_KEY
+        value: your_supabase_key
+      - key: CLOUDINARY_NAME
+        value: your_cloudinary_name
+      - key: CLOUDINARY_API_KEY
+        value: your_cloudinary_key
+      - key: CLOUDINARY_API_SECRET
+        value: your_cloudinary_secret
+    root: server
