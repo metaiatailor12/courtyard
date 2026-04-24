@@ -71,7 +71,11 @@ interface BookingContextType {
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
 const viteEnv = import.meta as ImportMeta & { env?: Record<string, string | undefined> };
-const API_BASE_URL = viteEnv.env?.VITE_API_BASE_URL || '/api';
+const RAW_API_BASE_URL = viteEnv.env?.VITE_API_BASE_URL || '/api';
+const API_BASE_URL =
+  typeof window !== 'undefined' && window.location.hostname.includes('localhost')
+    ? '/api'
+    : RAW_API_BASE_URL;
 
 const assertApiConfigured = () => {
   if (!viteEnv.env?.VITE_API_BASE_URL && typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {

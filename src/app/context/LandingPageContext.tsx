@@ -76,12 +76,16 @@ export interface LandingPageContent {
 
 interface LandingPageContextType {
   content: LandingPageContent;
-  updateContent: (content: Partial<LandingPageContent>) => void;
+  updateContent: (content: Partial<LandingPageContent>) => Promise<void>;
 }
 
 const LandingPageContext = createContext<LandingPageContextType | undefined>(undefined);
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
+const RAW_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
+const API_BASE_URL =
+  typeof window !== 'undefined' && window.location.hostname.includes('localhost')
+    ? '/api'
+    : RAW_API_BASE_URL;
 
 const EMPTY_LANDING_CONTENT: LandingPageContent = {
   heroTitle: '',
@@ -167,42 +171,37 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
     };
   }, []);
 
-  const updateContent = (newContent: Partial<LandingPageContent>) => {
-    setContent((prev) => {
-      const { gallery: _gallery, ...rest } = newContent;
-      const nextContent = normalizeLandingContent({ ...prev, ...rest, gallery: prev.gallery });
+  const updateContent = async (newContent: Partial<LandingPageContent>) => {
+    const { gallery: _gallery, ...rest } = newContent;
+    const nextContent = normalizeLandingContent({ ...content, ...rest, gallery: content.gallery });
+    setContent(nextContent);
 
-      void (async () => {
-        try {
-          const token = await getCurrentUserToken();
-          if (!token) {
-            showErrorToast('Unable to save changes', 'Please sign in again and retry.');
-            return;
-          }
+    try {
+      const token = await getCurrentUserToken();
+      if (!token) {
+        throw new Error('Please sign in again and retry.');
+      }
 
-          const response = await fetch(`${API_BASE_URL}/settings`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ landing: nextContent }),
-          });
+      const response = await fetch(`${API_BASE_URL}/settings`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ landing: nextContent }),
+      });
 
-          if (!response.ok) {
-            const payload = await response.json().catch(() => null);
-            throw new Error(payload?.error?.message || 'Unable to sync landing content to server');
-          }
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error?.message || 'Unable to sync landing content to server');
+      }
 
-          window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unable to sync landing content to server';
-          showErrorToast('Save failed', message);
-        }
-      })();
-
-      return nextContent;
-    });
+      window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to sync landing content to server';
+      showErrorToast('Save failed', message);
+      throw error;
+    }
   };
 
   return (

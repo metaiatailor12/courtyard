@@ -147,6 +147,12 @@ const DEFAULT_SITE_ASSETS = {
   aboutImage: DEFAULT_LANDING.aboutImage,
 };
 
+function sanitizeDocumentId(value, fallback) {
+  const raw = String(value || '').trim();
+  const cleaned = raw.replace(/[\\/#?\[\]]/g, '-').slice(0, 120);
+  return cleaned || fallback;
+}
+
 function toIso(value) {
   if (!value) {
     return new Date().toISOString();
@@ -336,34 +342,75 @@ async function getGalleryImages() {
 
 async function replaceGalleryImages(items) {
   const db = getDb();
+  const usedIds = new Set();
   const normalizedItems = Array.isArray(items)
     ? items
         .map((item, index) => ({
-          id: String(item?.id || `${Date.now()}-${index}`),
+          id: sanitizeDocumentId(item?.id, `gallery-${Date.now()}-${index}`),
           url: String(item?.url || '').trim(),
           caption: String(item?.caption || '').trim(),
           sortOrder: index,
         }))
+        .map((item, index) => {
+          let nextId = item.id;
+          if (usedIds.has(nextId)) {
+            nextId = `${item.id}-${index}`;
+          }
+          usedIds.add(nextId);
+          return {
+            ...item,
+            id: nextId,
+          };
+        })
         .filter(item => item.url)
     : [];
 
   const collection = db.collection(GALLERY_COLLECTION);
   const existing = await collection.get();
-  const batch = db.batch();
 
-  existing.docs.forEach(doc => batch.delete(doc.ref));
-  normalizedItems.forEach(item => {
-    batch.set(collection.doc(item.id), {
-      id: item.id,
-      url: item.url,
-      caption: item.caption,
-      sortOrder: item.sortOrder,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+  // Firestore batches are limited to 500 writes; keep a safety margin.
+  const writeOperations = [
+    ...existing.docs.map(doc => ({ type: 'delete', ref: doc.ref })),
+    ...normalizedItems.map(item => ({
+      type: 'set',
+      ref: collection.doc(item.id),
+      data: {
+        id: item.id,
+        url: item.url,
+        caption: item.caption,
+        sortOrder: item.sortOrder,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    })),
+  ];
+
+  const chunkSize = 400;
+  for (let index = 0; index < writeOperations.length; index += chunkSize) {
+    const batch = db.batch();
+    const chunk = writeOperations.slice(index, index + chunkSize);
+
+    chunk.forEach((operation) => {
+      if (operation.type === 'delete') {
+        batch.delete(operation.ref);
+      } else {
+        batch.set(operation.ref, operation.data);
+      }
     });
-  });
 
-  await batch.commit();
+    await batch.commit();
+  }
+
+  await db.collection('settings').doc('default').set({
+    landing: {
+      gallery: normalizedItems.map(item => ({
+        id: item.id,
+        url: item.url,
+        caption: item.caption,
+      })),
+    },
+    updatedAt: new Date(),
+  }, { merge: true });
 
   return normalizedItems.map(item => ({
     id: item.id,

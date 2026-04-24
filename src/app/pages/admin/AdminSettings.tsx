@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { DollarSign, Save, Image, MapPin, Phone, Mail, Star, Clock, Layout, Plus, Trash2, Eye, Settings as SettingsIcon, Palette } from 'lucide-react';
+import { DollarSign, Save, Image, MapPin, Phone, Mail, Star, Clock, Layout, Plus, Trash2, Eye, Settings as SettingsIcon, Palette, Upload } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
@@ -10,7 +10,16 @@ import { useBooking } from '../../context/BookingContext';
 import { useAuth } from '../../context/AuthContext';
 import { getCurrentUserToken } from '../../lib/firebaseClient';
 import { Calendar, CreditCard, Shield, Zap, Users, Award } from 'lucide-react';
-import { showSuccessToast } from '../../utils/notificationHelpers';
+import { showErrorToast, showSuccessToast } from '../../utils/notificationHelpers';
+
+const readFileAsDataUrl = (file: File) => {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Unable to read selected file'));
+    reader.readAsDataURL(file);
+  });
+};
 
 const iconOptions = [
   { value: 'Calendar', label: 'Calendar', Icon: Calendar },
@@ -48,6 +57,7 @@ export const AdminSettings = () => {
   });
 
   const [saved, setSaved] = useState(false);
+  const [aboutImageUploading, setAboutImageUploading] = useState(false);
 
   useEffect(() => {
     setLandingFormData(content);
@@ -175,9 +185,50 @@ export const AdminSettings = () => {
     setLandingFormData((prev) => ({ ...prev, stats: newStats }));
   };
 
-  const handleSaveLanding = () => {
-    updateContent(landingFormData);
+  const handleSaveLanding = async () => {
+    await updateContent(landingFormData);
     showSuccessToast('Landing page updated successfully!');
+  };
+
+  const handleAboutImageUpload = async (file: File | null) => {
+    if (!file) {
+      return;
+    }
+
+    setAboutImageUploading(true);
+
+    try {
+      const token = await getCurrentUserToken();
+      if (!token) {
+        throw new Error('Please sign in again to upload images');
+      }
+
+      const image = await readFileAsDataUrl(file);
+      const response = await fetch('/api/admin/gallery/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ image, fileName: file.name }),
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.upload?.secureUrl) {
+        throw new Error(payload?.error?.message || 'Unable to upload image');
+      }
+
+      setLandingFormData((prev) => ({
+        ...prev,
+        aboutImage: payload.upload.secureUrl,
+      }));
+      showSuccessToast('About image uploaded. Click Save Changes to publish it.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to upload image';
+      showErrorToast('Upload failed', message);
+    } finally {
+      setAboutImageUploading(false);
+    }
   };
 
   const tabs = [
@@ -572,6 +623,52 @@ export const AdminSettings = () => {
                       />
                     </div>
                   ))}
+                </div>
+              </GlassCard>
+
+              <GlassCard className="p-6 lg:col-span-2">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                  <Image className="w-5 h-5 text-emerald-600" />
+                  About Section Image
+                </h3>
+
+                <div className="grid md:grid-cols-2 gap-6 items-start">
+                  <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50 aspect-[4/3]">
+                    {landingFormData.aboutImage ? (
+                      <img
+                        src={landingFormData.aboutImage}
+                        alt="About section preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-500 text-sm">
+                        No image selected
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Upload an image for the landing page About section.
+                    </p>
+                    <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 cursor-pointer text-sm font-medium text-gray-700">
+                      <Upload className="w-4 h-4" />
+                      {aboutImageUploading ? 'Uploading...' : 'Choose Image'}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        className="hidden"
+                        disabled={aboutImageUploading}
+                        onChange={(e) => {
+                          void handleAboutImageUpload(e.target.files?.[0] || null);
+                          e.currentTarget.value = '';
+                        }}
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      Supported formats: PNG, JPG, JPEG, WEBP. After upload, click Save Changes.
+                    </p>
+                  </div>
                 </div>
               </GlassCard>
             </div>

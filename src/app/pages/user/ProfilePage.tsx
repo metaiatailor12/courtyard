@@ -10,14 +10,14 @@ import { useBooking } from '../../context/BookingContext';
 
 export const ProfilePage = () => {
   const { user, logout } = useAuth();
-  const { bookings, subscriptions } = useBooking();
+  const { bookings, subscriptions, appSettings } = useBooking();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'bookings' | 'subscriptions'>('bookings');
-  const { bookings, subscriptions, appSettings } = useBooking();
-
-  const userBookings = user?.email
+  
   const supportPhone = typeof appSettings.landing?.venuePhone === 'string' ? appSettings.landing.venuePhone : '';
   const supportEmail = typeof appSettings.landing?.venueEmail === 'string' ? appSettings.landing.venueEmail : '';
+
+  const userBookings = user?.email
     ? bookings.filter(booking => booking.userEmail === user.email)
     : bookings;
 
