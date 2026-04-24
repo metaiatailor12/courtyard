@@ -21,6 +21,9 @@ const env = {
   adminSeedEmail: process.env.ADMIN_SEED_EMAIL || '',
   adminSeedPassword: process.env.ADMIN_SEED_PASSWORD || '',
   adminSeedName: process.env.ADMIN_SEED_NAME || 'Platform Admin',
+  gmailAdminEmail: process.env.GMAIL_ADMIN_EMAIL || '',
+  gmailAppPassword: process.env.GMAIL_APP_PASSWORD || '',
+  emailVerificationExpiryMinutes: Number(process.env.EMAIL_VERIFICATION_EXPIRY_MINUTES || 15),
   nodeEnv: process.env.NODE_ENV || 'development',
 };
 

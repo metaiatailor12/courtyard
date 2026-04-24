@@ -2,6 +2,8 @@ import { createBrowserRouter } from "react-router";
 import { RootLayout } from "./components/RootLayout";
 import { LandingPage } from "./pages/LandingPage";
 import { UnifiedLogin } from "./pages/UnifiedLogin";
+import { SignupPage } from "./pages/SignupPage";
+import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import { UserLogin } from "./pages/user/UserLogin";
 import { UserRegister } from "./pages/user/UserRegister";
 import { UserHome } from "./pages/user/UserHome";
@@ -36,6 +38,14 @@ export const router = createBrowserRouter([
       {
         path: "login",
         element: <UnifiedLogin />,
+      },
+      {
+        path: "signup",
+        element: <SignupPage />,
+      },
+      {
+        path: "verify-email",
+        element: <VerifyEmailPage />,
       },
       {
         path: "user/login",

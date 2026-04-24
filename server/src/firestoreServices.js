@@ -1245,6 +1245,89 @@ async function replyToReview(reviewId, payload, authUser) {
   return mapReviewDoc(updated);
 }
 
+async function storeVerificationToken(email, token, expiryTime) {
+  const db = getDb();
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  
+  if (!normalizedEmail) {
+    throw new ApiError(400, 'email is required');
+  }
+
+  await db.collection('email_verifications').doc(normalizedEmail).set({
+    email: normalizedEmail,
+    token,
+    expiryTime,
+    createdAt: new Date(),
+    verified: false,
+  });
+}
+
+async function verifyEmail(email, token) {
+  const db = getDb();
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  
+  if (!normalizedEmail) {
+    throw new ApiError(400, 'email is required');
+  }
+
+  const verificationRef = db.collection('email_verifications').doc(normalizedEmail);
+  const verificationDoc = await verificationRef.get();
+
+  if (!verificationDoc.exists) {
+    throw new ApiError(404, 'Verification token not found');
+  }
+
+  const verificationData = verificationDoc.data();
+  
+  if (verificationData.token !== token) {
+    throw new ApiError(401, 'Invalid verification token');
+  }
+
+  if (new Date() > new Date(verificationData.expiryTime)) {
+    throw new ApiError(401, 'Verification token has expired');
+  }
+
+  // Mark email as verified
+  await verificationRef.update({
+    verified: true,
+    verifiedAt: new Date(),
+  });
+
+  // Update user document to mark as verified
+  const usersRef = db.collection('users');
+  const userQuery = await usersRef.where('email', '==', normalizedEmail).limit(1).get();
+  
+  if (!userQuery.empty) {
+    const userDoc = userQuery.docs[0];
+    await userDoc.ref.update({
+      emailVerified: true,
+      emailVerifiedAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  return true;
+}
+
+async function checkEmailVerification(email) {
+  const db = getDb();
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  
+  const verificationRef = db.collection('email_verifications').doc(normalizedEmail);
+  const verificationDoc = await verificationRef.get();
+
+  if (!verificationDoc.exists) {
+    return { verified: false, exists: false };
+  }
+
+  const verificationData = verificationDoc.data();
+  return {
+    verified: verificationData.verified === true,
+    exists: true,
+    expiryTime: verificationData.expiryTime,
+  };
+}
+
 module.exports = {
   getAppSettings,
   updateAppSettings,
@@ -1269,4 +1352,7 @@ module.exports = {
   listReviews,
   createReview,
   replyToReview,
+  storeVerificationToken,
+  verifyEmail,
+  checkEmailVerification,
 };

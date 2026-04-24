@@ -27,8 +27,13 @@ const {
 	listReviews,
 	createReview,
 	replyToReview,
+	storeVerificationToken,
+	verifyEmail,
+	checkEmailVerification,
 } = require('./firestoreServices');
 const { uploadGalleryImage } = require('./cloudinary');
+const { sendVerificationEmail } = require('./emailService');
+const { generateJWTVerificationToken, getTokenExpiryTime } = require('./tokenUtils');
 
 const router = express.Router();
 
@@ -57,6 +62,91 @@ router.get('/', (_req, res) => {
 router.get('/health', (_req, res) => {
 	res.json({ status: 'ok' });
 });
+
+router.post('/auth/verify-email-send', asyncHandler(async (req, res) => {
+	const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+	const name = typeof req.body?.name === 'string' ? req.body.name.trim() : 'User';
+	
+	if (!email) {
+		throw new ApiError(400, 'email is required');
+	}
+
+	// Check if email is already verified
+	const existingVerification = await checkEmailVerification(email);
+	if (existingVerification.verified) {
+		throw new ApiError(400, 'Email is already verified');
+	}
+
+	// Generate verification token
+	const token = generateJWTVerificationToken(email);
+	const expiryTime = getTokenExpiryTime();
+
+	// Store token in database
+	await storeVerificationToken(email, token, expiryTime);
+
+	// Build verification link
+	const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+	const verificationLink = `${clientOrigin}/verify-email?token=${encodeURIComponent(token)}`;
+
+	// Send verification email
+	try {
+		await sendVerificationEmail(email, verificationLink, name);
+		res.json({ 
+			message: 'Verification email sent successfully',
+			email,
+		});
+	} catch (error) {
+		console.error('Failed to send verification email:', error);
+		throw new ApiError(500, 'Failed to send verification email. Please try again.');
+	}
+}));
+
+router.post('/auth/verify-email-confirm', asyncHandler(async (req, res) => {
+	const token = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
+
+	if (!token) {
+		throw new ApiError(400, 'token is required');
+	}
+
+	try {
+		// Import the verifyJWTToken function
+		const { verifyJWTToken } = require('./tokenUtils');
+		
+		// Decode the JWT to get the email
+		const decoded = verifyJWTToken(token);
+		
+		if (!decoded || !decoded.email) {
+			throw new ApiError(401, 'Invalid or expired verification token');
+		}
+
+		const email = decoded.email;
+
+		// Verify the email using the database
+		await verifyEmail(email, token);
+		
+		res.json({ 
+			message: 'Email verified successfully',
+			verified: true,
+			email,
+		});
+	} catch (error) {
+		if (error instanceof ApiError) {
+			throw error;
+		}
+		throw new ApiError(400, 'Email verification failed: ' + (error.message || 'Unknown error'));
+	}
+}));
+
+router.get('/auth/verify-email-check', asyncHandler(async (req, res) => {
+	const email = typeof req.query.email === 'string' ? req.query.email.trim().toLowerCase() : '';
+
+	if (!email) {
+		throw new ApiError(400, 'email is required');
+	}
+
+	const verification = await checkEmailVerification(email);
+	res.json(verification);
+}));
 
 router.post('/contact-messages', asyncHandler(async (req, res) => {
 	const message = await createContactMessage(req.body || {});
