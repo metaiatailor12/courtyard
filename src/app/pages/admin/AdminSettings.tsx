@@ -262,7 +262,7 @@ export const AdminSettings = () => {
                 onClick={() => setActiveTab(tab.id as 'general' | 'landing')}
                 className={`flex items-center gap-2 px-6 py-3 font-medium transition-all border-b-2 whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'border-emerald-600 text-emerald-600'
+                    ? 'border-yellow-800 text-yellow-800'
                     : 'border-transparent text-gray-600 hover:text-gray-800'
                 }`}
               >
@@ -280,7 +280,7 @@ export const AdminSettings = () => {
             <GlassCard className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-green-600" />
+                  <DollarSign className="w-6 h-6 text-yellow-700" />
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold">Pricing Configuration</h2>
@@ -299,7 +299,7 @@ export const AdminSettings = () => {
                       type="number"
                       value={pricing.weekdayPrice}
                       onChange={(e) => setPricing({ ...pricing, weekdayPrice: Number(e.target.value) })}
-                      className="w-full pl-8 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      className="w-full pl-8 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#808000] focus:border-transparent"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Monday to Friday (5 AM - 5 PM)</p>
@@ -315,7 +315,7 @@ export const AdminSettings = () => {
                       type="number"
                       value={pricing.weekendPrice}
                       onChange={(e) => setPricing({ ...pricing, weekendPrice: Number(e.target.value) })}
-                      className="w-full pl-8 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      className="w-full pl-8 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#808000] focus:border-transparent"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Saturday and Sunday (All day)</p>
@@ -331,7 +331,7 @@ export const AdminSettings = () => {
                       type="number"
                       value={pricing.monthlySubscription}
                       onChange={(e) => setPricing({ ...pricing, monthlySubscription: Number(e.target.value) })}
-                      className="w-full pl-8 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                      className="w-full pl-8 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#808000] focus:border-transparent"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Monthly subscription for regular users</p>
@@ -373,7 +373,7 @@ export const AdminSettings = () => {
                   <textarea
                     value={courtDetails.address}
                     onChange={(e) => setCourtDetails({ ...courtDetails, address: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent min-h-[80px]"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#808000] focus:border-transparent min-h-[80px]"
                   />
                 </div>
 
@@ -463,18 +463,18 @@ export const AdminSettings = () => {
               </div>
               <Button
                 onClick={handleSaveLanding}
-                className="bg-gradient-to-r from-emerald-600 to-cyan-600 text-white flex items-center gap-2"
+                className="bg-gradient-to-r from-yellow-700 to-yellow-600 text-white flex items-center gap-2"
               >
                 <Save className="w-4 h-4" />
                 Save Changes
               </Button>
             </div>
 
-            <GlassCard className="p-6 border border-emerald-100 bg-white/80">
+            <GlassCard className="p-6 border border-yellow-100 bg-white/80">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center shrink-0">
-                    <Image className="w-6 h-6 text-emerald-600" />
+                  <div className="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center shrink-0">
+                    <Image className="w-6 h-6 text-yellow-800" />
                   </div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-800">User Home Gallery</h3>
@@ -501,7 +501,7 @@ export const AdminSettings = () => {
               {/* Hero Section */}
               <GlassCard className="p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Layout className="w-5 h-5 text-emerald-600" />
+                  <Layout className="w-5 h-5 text-yellow-800" />
                   Hero Section
                 </h3>
 
@@ -512,7 +512,7 @@ export const AdminSettings = () => {
                       type="text"
                       value={landingFormData.heroTitle}
                       onChange={(e) => handleInputChange('heroTitle', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-yellow-700"
                     />
                   </div>
 
@@ -522,7 +522,7 @@ export const AdminSettings = () => {
                       type="text"
                       value={landingFormData.heroSubtitle}
                       onChange={(e) => handleInputChange('heroSubtitle', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-yellow-700"
                     />
                   </div>
 
@@ -532,7 +532,7 @@ export const AdminSettings = () => {
                       value={landingFormData.heroDescription}
                       onChange={(e) => handleInputChange('heroDescription', e.target.value)}
                       rows={3}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-yellow-700"
                     />
                   </div>
                 </div>
@@ -542,7 +542,7 @@ export const AdminSettings = () => {
               <GlassCard className="p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <Star className="w-5 h-5 text-emerald-600" />
+                    <Star className="w-5 h-5 text-yellow-800" />
                     Features
                   </h3>
                   <Button size="sm" onClick={addFeature} variant="outline">
@@ -595,7 +595,7 @@ export const AdminSettings = () => {
               <GlassCard className="p-6 lg:col-span-2">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <Award className="w-5 h-5 text-emerald-600" />
+                    <Award className="w-5 h-5 text-yellow-800" />
                     Statistics
                   </h3>
                   <Button size="sm" onClick={addStat} variant="outline">
@@ -635,7 +635,7 @@ export const AdminSettings = () => {
 
               <GlassCard className="p-6 lg:col-span-2">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <Image className="w-5 h-5 text-emerald-600" />
+                  <Image className="w-5 h-5 text-yellow-800" />
                   About Section Image
                 </h3>
 
@@ -685,3 +685,5 @@ export const AdminSettings = () => {
     </div>
   );
 };
+
+

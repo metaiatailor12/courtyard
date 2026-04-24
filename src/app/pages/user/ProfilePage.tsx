@@ -6,7 +6,7 @@ import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
-import { useBooking } from '../../context/BookingContext';
+import { useBooking, getEffectiveBookingStatus } from '../../context/BookingContext';
 
 export const ProfilePage = () => {
   const { user, logout } = useAuth();
@@ -44,7 +44,7 @@ export const ProfilePage = () => {
           {/* User Info Card */}
           <GlassCard className="p-4 md:p-6 lg:col-span-1 h-fit">
             <div className="flex flex-col items-center text-center">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-full flex items-center justify-center mb-4">
+              <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-yellow-700 to-yellow-600 rounded-full flex items-center justify-center mb-4">
                 <User className="w-10 h-10 md:w-12 md:h-12 text-white" />
               </div>
               <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-1">{user?.name || 'User Name'}</h2>
@@ -79,7 +79,7 @@ export const ProfilePage = () => {
               <div className="w-full mt-6 pt-6 border-t border-gray-200">
                 <div className="grid grid-cols-2 gap-4 text-center">
                   <div>
-                    <p className="text-2xl font-bold text-[#10b981]">{userBookings.length}</p>
+                    <p className="text-2xl font-bold text-[#808000]">{userBookings.length}</p>
                     <p className="text-xs text-gray-600">Total Bookings</p>
                   </div>
                   <div>
@@ -109,7 +109,7 @@ export const ProfilePage = () => {
                 onClick={() => setActiveTab('bookings')}
                 className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                   activeTab === 'bookings'
-                    ? 'bg-[#10b981] text-white'
+                    ? 'bg-[#808000] text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -120,7 +120,7 @@ export const ProfilePage = () => {
                 onClick={() => setActiveTab('subscriptions')}
                 className={`flex-1 px-4 py-3 rounded-lg font-medium transition-colors ${
                   activeTab === 'subscriptions'
-                    ? 'bg-[#10b981] text-white'
+                    ? 'bg-[#808000] text-white'
                     : 'bg-white text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -171,19 +171,19 @@ export const ProfilePage = () => {
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="font-semibold text-gray-800">{getCourtName()}</h4>
                                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                  booking.status === 'upcoming'
+                                  getEffectiveBookingStatus(booking) === 'upcoming'
                                     ? 'bg-blue-100 text-blue-700'
-                                    : booking.status === 'completed'
+                                    : getEffectiveBookingStatus(booking) === 'completed'
                                     ? 'bg-green-100 text-green-700'
                                     : 'bg-red-100 text-red-700'
                                 }`}>
-                                  {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                                  {getEffectiveBookingStatus(booking).charAt(0).toUpperCase() + getEffectiveBookingStatus(booking).slice(1)}
                                 </span>
                               </div>
                               <p className="text-xs text-gray-500">ID: {booking.id}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-2xl font-bold text-[#10b981]">₹{booking.totalAmount}</p>
+                              <p className="text-2xl font-bold text-[#808000]">₹{booking.totalAmount}</p>
                               <p className="text-xs text-gray-600">Paid</p>
                             </div>
                           </div>
@@ -204,7 +204,7 @@ export const ProfilePage = () => {
                           <div className="flex items-center justify-between text-xs text-gray-600 pt-3 border-t border-gray-200">
                             <span>Payment ID: {booking.paymentId}</span>
                             <span className="flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3 text-green-600" />
+                              <CheckCircle className="w-3 h-3 text-yellow-700" />
                               Payment Confirmed
                             </span>
                           </div>
@@ -220,9 +220,9 @@ export const ProfilePage = () => {
             {activeTab === 'subscriptions' && (
               <>
                 {/* Cancellation Info Banner */}
-                <GlassCard className="p-4 mb-4 bg-gradient-to-r from-blue-50 to-emerald-50 border-l-4 border-[#10b981]">
+                <GlassCard className="p-4 mb-4 bg-gradient-to-r from-blue-50 to-yellow-50 border-l-4 border-[#808000]">
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-[#10b981] rounded-full flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 md:w-10 md:h-10 bg-[#808000] rounded-full flex items-center justify-center flex-shrink-0">
                       <Phone className="w-4 h-4 md:w-5 md:h-5 text-white" />
                     </div>
                     <div className="flex-1">
@@ -233,14 +233,14 @@ export const ProfilePage = () => {
                       <div className="flex flex-wrap gap-3 text-xs md:text-sm">
                         <a 
                           href={supportPhone ? `tel:${supportPhone}` : '#'} 
-                          className="flex items-center gap-1 text-[#10b981] hover:text-[#059669] font-medium"
+                          className="flex items-center gap-1 text-[#808000] hover:text-[#5D5E1F] font-medium"
                         >
                           <Phone className="w-3 h-3 md:w-4 md:h-4" />
                           {supportPhone || 'support phone unavailable'}
                         </a>
                         <a 
                           href={supportEmail ? `mailto:${supportEmail}` : '#'} 
-                          className="flex items-center gap-1 text-[#10b981] hover:text-[#059669] font-medium"
+                          className="flex items-center gap-1 text-[#808000] hover:text-[#5D5E1F] font-medium"
                         >
                           <MailIcon className="w-3 h-3 md:w-4 md:h-4" />
                           {supportEmail || 'support email unavailable'}
@@ -288,7 +288,7 @@ export const ProfilePage = () => {
                               <p className="text-xs text-gray-500">ID: {sub.id}</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-2xl font-bold text-[#10b981]">₹{sub.amount}</p>
+                              <p className="text-2xl font-bold text-[#808000]">₹{sub.amount}</p>
                               <p className="text-xs text-gray-600">Paid</p>
                             </div>
                           </div>
@@ -302,7 +302,7 @@ export const ProfilePage = () => {
                             </div>
                             <div className="bg-gray-50 p-3 rounded-lg">
                               <p className="text-xs text-gray-600 mb-1">Weekdays Count</p>
-                              <p className="text-sm font-semibold text-[#10b981]">{sub.weekdaysCount} days</p>
+                              <p className="text-sm font-semibold text-[#808000]">{sub.weekdaysCount} days</p>
                             </div>
                             <div className="bg-gray-50 p-3 rounded-lg">
                               <p className="text-xs text-gray-600 mb-1">Court</p>
@@ -317,7 +317,7 @@ export const ProfilePage = () => {
                           <div className="flex items-center justify-between text-xs text-gray-600 pt-3 border-t border-gray-200">
                             <span>Payment ID: {sub.paymentId}</span>
                             <span className="flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3 text-green-600" />
+                              <CheckCircle className="w-3 h-3 text-yellow-700" />
                               Payment Confirmed
                             </span>
                           </div>

@@ -183,11 +183,11 @@ export const SubscriptionPage = () => {
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center gap-2">
                 <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-semibold ${
-                  step >= s ? 'bg-[#10b981] text-white' : 'bg-gray-200 text-gray-500'
+                  step >= s ? 'bg-[#808000] text-white' : 'bg-gray-200 text-gray-500'
                 }`}>
                   {s}
                 </div>
-                {s < 3 && <div className={`w-12 md:w-20 h-1 ${step > s ? 'bg-[#10b981]' : 'bg-gray-200'}`}></div>}
+                {s < 3 && <div className={`w-12 md:w-20 h-1 ${step > s ? 'bg-[#808000]' : 'bg-gray-200'}`}></div>}
               </div>
             ))}
           </div>
@@ -202,7 +202,7 @@ export const SubscriptionPage = () => {
         {step === 1 && (
           <GlassCard className="p-4 md:p-6">
             <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-[#10b981]" />
+              <CalendarIcon className="w-5 h-5 text-[#808000]" />
               Select Start Date
             </h2>
 
@@ -237,7 +237,7 @@ export const SubscriptionPage = () => {
               </div>
 
               {startDate && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-gray-600">Start Date</p>
@@ -253,7 +253,7 @@ export const SubscriptionPage = () => {
                     </div>
                     <div>
                       <p className="text-gray-600">Weekdays Count</p>
-                      <p className="font-semibold text-[#10b981]">{weekdaysCount} days</p>
+                      <p className="font-semibold text-[#808000]">{weekdaysCount} days</p>
                     </div>
                   </div>
                 </div>
@@ -275,7 +275,7 @@ export const SubscriptionPage = () => {
         {step === 2 && (
           <GlassCard className="p-4 md:p-6">
             <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-[#10b981]" />
+              <MapPin className="w-5 h-5 text-[#808000]" />
               Select Court & Time Slot
             </h2>
 
@@ -292,12 +292,12 @@ export const SubscriptionPage = () => {
                       onClick={() => setSelectedCourt(court)}
                       className={`p-4 rounded-lg border-2 transition-all ${
                         selectedCourt === court
-                          ? 'border-[#10b981] bg-emerald-50'
+                          ? 'border-[#808000] bg-yellow-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
-                      <MapPin className={`w-5 h-5 mx-auto mb-2 ${selectedCourt === court ? 'text-[#10b981]' : 'text-gray-400'}`} />
-                      <p className={`font-medium ${selectedCourt === court ? 'text-[#10b981]' : 'text-gray-700'}`}>
+                      <MapPin className={`w-5 h-5 mx-auto mb-2 ${selectedCourt === court ? 'text-[#808000]' : 'text-gray-400'}`} />
+                      <p className={`font-medium ${selectedCourt === court ? 'text-[#808000]' : 'text-gray-700'}`}>
                         {court}
                       </p>
                     </button>
@@ -320,13 +320,13 @@ export const SubscriptionPage = () => {
                         isSelectedSlotUnavailable(slot)
                           ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                           : selectedTimeSlot === slot
-                          ? 'border-[#10b981] bg-emerald-50'
+                          ? 'border-[#808000] bg-yellow-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <Clock className={`w-4 h-4 ${isSelectedSlotUnavailable(slot) ? 'text-gray-400' : selectedTimeSlot === slot ? 'text-[#10b981]' : 'text-gray-400'}`} />
-                        <span className={`text-sm font-medium ${isSelectedSlotUnavailable(slot) ? 'text-gray-400' : selectedTimeSlot === slot ? 'text-[#10b981]' : 'text-gray-700'}`}>
+                        <Clock className={`w-4 h-4 ${isSelectedSlotUnavailable(slot) ? 'text-gray-400' : selectedTimeSlot === slot ? 'text-[#808000]' : 'text-gray-400'}`} />
+                        <span className={`text-sm font-medium ${isSelectedSlotUnavailable(slot) ? 'text-gray-400' : selectedTimeSlot === slot ? 'text-[#808000]' : 'text-gray-700'}`}>
                           {slot}
                         </span>
                       </div>
@@ -376,7 +376,7 @@ export const SubscriptionPage = () => {
           <div className="space-y-4">
             <GlassCard className="p-4 md:p-6">
               <h2 className="text-lg md:text-xl font-semibold mb-4 flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-[#10b981]" />
+                <CheckCircle className="w-5 h-5 text-[#808000]" />
                 Subscription Summary
               </h2>
 
@@ -390,7 +390,7 @@ export const SubscriptionPage = () => {
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-xs text-gray-600 mb-1">Weekdays Count</p>
-                    <p className="font-semibold text-[#10b981]">{weekdaysCount} days</p>
+                    <p className="font-semibold text-[#808000]">{weekdaysCount} days</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-xs text-gray-600 mb-1">Court</p>
@@ -413,7 +413,7 @@ export const SubscriptionPage = () => {
                   </div>
                   <div className="flex justify-between items-center pt-3 border-t border-gray-200">
                     <span className="text-lg font-semibold">Total Amount</span>
-                    <span className="text-2xl font-bold text-[#10b981]">
+                    <span className="text-2xl font-bold text-[#808000]">
                       ₹{subscriptionPrice + Math.round(subscriptionPrice * 0.18)}
                     </span>
                   </div>
@@ -459,12 +459,12 @@ export const SubscriptionPage = () => {
                   onClick={() => setPaymentMethod('onsite')}
                   className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
                     paymentMethod === 'onsite'
-                      ? 'border-emerald-500 bg-emerald-50'
+                      ? 'border-yellow-700 bg-yellow-50'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
                   <div className="flex items-center gap-2">
-                    <Building2 className={`w-4 h-4 ${paymentMethod === 'onsite' ? 'text-emerald-600' : 'text-gray-500'}`} />
+                    <Building2 className={`w-4 h-4 ${paymentMethod === 'onsite' ? 'text-yellow-800' : 'text-gray-500'}`} />
                     <p className="font-medium text-gray-800">Pay Onsite</p>
                   </div>
                   <p className="text-xs text-gray-600 mt-1">Reserve now, pay at the venue.</p>

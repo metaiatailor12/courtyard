@@ -2,6 +2,70 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { db, getCurrentUserToken, auth } from '../lib/firebaseClient';
 import { onAuthStateChanged } from 'firebase/auth';
 
+/**
+ * Calculate the effective booking status based on current date/time
+ * Overrides the stored status to reflect actual booking state
+ */
+export const getEffectiveBookingStatus = (booking: Booking): 'upcoming' | 'completed' | 'cancelled' => {
+  // If cancelled, always show as cancelled
+  if (booking.status === 'cancelled') {
+    return 'cancelled';
+  }
+
+  // Get the last time slot's end time
+  if (booking.slots.length === 0) {
+    return booking.status;
+  }
+
+  const lastSlot = booking.slots[booking.slots.length - 1];
+  const slotTimeRange = lastSlot.time; // e.g., "7:00 AM - 8:00 AM"
+  const endTimeStr = slotTimeRange.split(' - ')[1]?.trim(); // "8:00 AM"
+
+  if (!endTimeStr) {
+    return booking.status;
+  }
+
+  // Parse end time and create a date+time to compare with current time
+  try {
+    // Create a date string from booking.date (should be YYYY-MM-DD format)
+    const bookingDate = new Date(booking.date);
+    
+    // Parse end time (e.g., "8:00 AM" or "20:00")
+    const timeMatch = endTimeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (!timeMatch) {
+      return booking.status;
+    }
+
+    let hour = parseInt(timeMatch[1], 10);
+    const minute = parseInt(timeMatch[2], 10);
+    const period = timeMatch[3]?.toUpperCase();
+
+    // Convert to 24-hour format if AM/PM is present
+    if (period === 'PM' && hour !== 12) {
+      hour += 12;
+    } else if (period === 'AM' && hour === 12) {
+      hour = 0;
+    }
+
+    // Create a date object for the end time of the booking
+    const bookingEndDateTime = new Date(bookingDate);
+    bookingEndDateTime.setHours(hour, minute, 0, 0);
+
+    // Get current date and time
+    const now = new Date();
+
+    // If current time is past the booking end time, mark as completed
+    if (now > bookingEndDateTime) {
+      return 'completed';
+    }
+
+    return 'upcoming';
+  } catch {
+    // If parsing fails, return the stored status
+    return booking.status;
+  }
+};
+
 export interface TimeSlot {
   id: string;
   time: string;

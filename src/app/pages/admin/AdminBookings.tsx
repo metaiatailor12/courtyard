@@ -5,7 +5,7 @@ import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
-import { useBooking } from '../../context/BookingContext';
+import { useBooking, getEffectiveBookingStatus } from '../../context/BookingContext';
 import { CreateBookingModal } from './CreateBookingModal';
 import { CreateSubscriptionModal } from './CreateSubscriptionModal';
 
@@ -21,9 +21,10 @@ export const AdminBookings = () => {
   const [createSubscriptionModal, setCreateSubscriptionModal] = useState(false);
 
   const filteredBookings = bookings.filter(booking => {
+    const effectiveStatus = getEffectiveBookingStatus(booking);
     const matchesSearch = booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          booking.courtName.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || effectiveStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -165,7 +166,7 @@ export const AdminBookings = () => {
           <button
             className={`px-4 py-2 rounded-lg font-medium transition-all ${
               activeTab === 'bookings'
-                ? 'bg-[#10b981] text-white'
+                ? 'bg-[#808000] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
             onClick={() => setActiveTab('bookings')}
@@ -175,7 +176,7 @@ export const AdminBookings = () => {
           <button
             className={`px-4 py-2 rounded-lg font-medium transition-all ${
               activeTab === 'subscriptions'
-                ? 'bg-[#10b981] text-white'
+                ? 'bg-[#808000] text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
             }`}
             onClick={() => setActiveTab('subscriptions')}
@@ -211,7 +212,7 @@ export const AdminBookings = () => {
                   onClick={() => setStatusFilter(status as any)}
                   className={`px-4 py-2 rounded-lg font-medium transition-all capitalize ${
                     statusFilter === status
-                      ? 'bg-[#10b981] text-white'
+                      ? 'bg-[#808000] text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -225,7 +226,7 @@ export const AdminBookings = () => {
                   onClick={() => setSubStatusFilter(status as any)}
                   className={`px-4 py-2 rounded-lg font-medium transition-all capitalize ${
                     subStatusFilter === status
-                      ? 'bg-[#10b981] text-white'
+                      ? 'bg-[#808000] text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
@@ -299,10 +300,10 @@ export const AdminBookings = () => {
                           <span className="text-sm text-gray-700">{getTimeSlotRange()}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="font-semibold text-[#10b981]">₹{booking.totalAmount}</span>
+                          <span className="font-semibold text-[#808000]">₹{booking.totalAmount}</span>
                         </td>
                         <td className="px-6 py-4">
-                          {getStatusBadge(booking.status)}
+                          {getStatusBadge(getEffectiveBookingStatus(booking))}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
@@ -313,14 +314,14 @@ export const AdminBookings = () => {
                             >
                               <Eye className="w-4 h-4 text-blue-600" />
                             </button>
-                            {booking.status === 'upcoming' && (
+                            {getEffectiveBookingStatus(booking) === 'upcoming' && (
                               <>
                                 <button
                                   onClick={() => setEditModal({ type: 'booking', data: booking })}
                                   className="p-2 hover:bg-green-50 rounded-lg transition-colors"
                                   title="Edit Booking"
                                 >
-                                  <Edit className="w-4 h-4 text-green-600" />
+                                  <Edit className="w-4 h-4 text-yellow-700" />
                                 </button>
                                 <button
                                   onClick={() => handleCancelBooking(booking.id)}
@@ -404,7 +405,7 @@ export const AdminBookings = () => {
                         <span className="text-sm text-gray-700">{sub.weekdaysCount} days</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-semibold text-[#10b981]">₹{sub.amount}</span>
+                        <span className="font-semibold text-[#808000]">₹{sub.amount}</span>
                       </td>
                       <td className="px-6 py-4">
                         {getStatusBadge(sub.status)}
@@ -425,7 +426,7 @@ export const AdminBookings = () => {
                                 className="p-2 hover:bg-green-50 rounded-lg transition-colors"
                                 title="Edit Subscription"
                               >
-                                <Edit className="w-4 h-4 text-green-600" />
+                                <Edit className="w-4 h-4 text-yellow-700" />
                               </button>
                               <button
                                 onClick={() => handleCancelSubscription(sub.id)}
@@ -462,12 +463,12 @@ export const AdminBookings = () => {
           <GlassCard className="p-6">
             <p className="text-sm text-gray-600 mb-1">Upcoming Bookings</p>
             <p className="text-2xl font-bold text-blue-600">
-              {bookings.filter(b => b.status === 'upcoming').length}
+              {bookings.filter(b => getEffectiveBookingStatus(b) === 'upcoming').length}
             </p>
           </GlassCard>
           <GlassCard className="p-6">
             <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
-            <p className="text-2xl font-bold text-green-600">
+            <p className="text-2xl font-bold text-yellow-700">
               ₹{bookings.reduce((sum, b) => sum + b.totalAmount, 0)}
             </p>
           </GlassCard>
@@ -532,7 +533,7 @@ export const AdminBookings = () => {
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 mb-1">Total Amount</p>
-                        <p className="font-semibold text-[#10b981]">₹{viewDetailsModal.data.totalAmount}</p>
+                        <p className="font-semibold text-[#808000]">₹{viewDetailsModal.data.totalAmount}</p>
                       </div>
                     </div>
                     <div>
@@ -602,7 +603,7 @@ export const AdminBookings = () => {
                       </div>
                       <div>
                         <p className="text-sm text-gray-600 mb-1">Total Amount</p>
-                        <p className="font-semibold text-[#10b981]">₹{viewDetailsModal.data.amount}</p>
+                        <p className="font-semibold text-[#808000]">₹{viewDetailsModal.data.amount}</p>
                       </div>
                     </div>
                   </>

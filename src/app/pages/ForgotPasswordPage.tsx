@@ -59,7 +59,7 @@ export const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <button
           onClick={() => navigate(backPath)}
@@ -76,7 +76,7 @@ export const ForgotPasswordPage = () => {
           </div>
 
           {notice && (
-            <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
               {notice}
             </div>
           )}
@@ -105,7 +105,7 @@ export const ForgotPasswordPage = () => {
 
           <p className="mt-6 text-center text-sm text-gray-600">
             Remember your password?{' '}
-            <Link to={backPath} className="text-[#10b981] hover:text-[#059669] font-medium">
+            <Link to={backPath} className="text-[#808000] hover:text-[#5D5E1F] font-medium">
               Go to login
             </Link>
           </p>
@@ -114,3 +114,5 @@ export const ForgotPasswordPage = () => {
     </div>
   );
 };
+
+

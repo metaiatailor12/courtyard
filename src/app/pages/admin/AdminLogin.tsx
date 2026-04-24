@@ -5,6 +5,7 @@ import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { useAuth } from '../../context/AuthContext';
+import { showErrorToast } from '../../utils/notificationHelpers';
 
 export const AdminLogin = () => {
   const navigate = useNavigate();
@@ -35,7 +36,17 @@ export const AdminLogin = () => {
       navigate('/admin/dashboard');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to sign in';
-      setErrors(prev => ({ ...prev, password: message }));
+      
+      // Map common errors to user-friendly messages
+      let displayMessage = message;
+      if (/invalid login credentials|invalid credentials|invalid email or password/i.test(message)) {
+        displayMessage = 'Invalid email or password.';
+      } else if (/admin access required/i.test(message)) {
+        displayMessage = 'Admin access required. Please use an admin account.';
+      }
+      
+      setErrors(prev => ({ ...prev, password: displayMessage }));
+      showErrorToast('Login failed', displayMessage);
     } finally {
       setLoading(false);
     }

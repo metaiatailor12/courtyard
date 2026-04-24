@@ -59,7 +59,7 @@ export const VerifyEmailPage = () => {
   }, [searchParams, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-50">
       <Navbar />
       <div className="container mx-auto px-4 py-12 max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
@@ -79,7 +79,7 @@ export const VerifyEmailPage = () => {
             <>
               <div className="flex justify-center mb-6">
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
+                  <CheckCircle2 className="w-8 h-8 text-yellow-700" />
                 </div>
               </div>
               <h1 className="text-3xl font-bold text-gray-800 mb-3">Email Verified!</h1>
@@ -125,3 +125,5 @@ export const VerifyEmailPage = () => {
     </div>
   );
 };
+
+

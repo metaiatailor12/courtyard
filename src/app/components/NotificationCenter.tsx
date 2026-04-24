@@ -28,7 +28,7 @@ export const NotificationCenter = () => {
   const getIcon = (type: string) => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-yellow-600" />;
       case 'error':
         return <AlertCircle className="w-5 h-5 text-red-500" />;
       case 'warning':
@@ -81,7 +81,7 @@ export const NotificationCenter = () => {
             className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50"
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-cyan-600 p-4 text-white">
+            <div className="bg-gradient-to-r from-yellow-700 to-yellow-600 p-4 text-white">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-lg">Notifications</h3>
                 <button
@@ -130,7 +130,7 @@ export const NotificationCenter = () => {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 20 }}
                       className={`p-4 hover:bg-gray-50 transition-colors ${
-                        !notification.read ? 'bg-emerald-50/30' : ''
+                        !notification.read ? 'bg-yellow-50/30' : ''
                       }`}
                     >
                       <div className="flex gap-3">
@@ -146,7 +146,7 @@ export const NotificationCenter = () => {
                               {notification.title}
                             </h4>
                             {!notification.read && (
-                              <div className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0 mt-1.5" />
+                              <div className="w-2 h-2 bg-yellow-700 rounded-full flex-shrink-0 mt-1.5" />
                             )}
                           </div>
                           <p className="text-xs text-gray-600 mb-2 line-clamp-2">
@@ -160,7 +160,7 @@ export const NotificationCenter = () => {
                               {!notification.read && (
                                 <button
                                   onClick={() => markAsRead(notification.id)}
-                                  className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+                                  className="text-xs text-yellow-800 hover:text-yellow-900 font-medium"
                                 >
                                   <Check className="w-4 h-4" />
                                 </button>
@@ -180,7 +180,7 @@ export const NotificationCenter = () => {
                                 markAsRead(notification.id);
                                 setIsOpen(false);
                               }}
-                              className="mt-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg transition-colors"
+                              className="mt-2 text-xs bg-yellow-800 hover:bg-yellow-900 text-white px-3 py-1 rounded-lg transition-colors"
                             >
                               {notification.action.label}
                             </button>
@@ -198,3 +198,5 @@ export const NotificationCenter = () => {
     </div>
   );
 };
+
+

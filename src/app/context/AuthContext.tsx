@@ -29,6 +29,7 @@ interface User {
   location?: string;
   address?: string;
   role: 'user' | 'admin';
+  emailVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -153,6 +154,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       location: profile?.location || profile?.address || undefined,
       address: profile?.address || undefined,
       role: derivedRole,
+      emailVerified: profile?.emailVerified ?? false,
     };
   };
 
@@ -238,6 +240,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
+      // Check if email verification is required for users
+      if (requiresEmailVerification && role === 'user' && !nextUser.emailVerified) {
+        await signOut(auth);
+        throw new Error('Please verify your email before logging in. Check your inbox for the verification link.');
+      }
+
       setUser(nextUser);
 
       // Load full profile in background
@@ -272,6 +280,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email: normalizedEmail,
         phone,
         role: 'user',
+        emailVerified: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       });

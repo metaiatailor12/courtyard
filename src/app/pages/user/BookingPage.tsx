@@ -204,7 +204,7 @@ export const BookingPage = () => {
               {/* Date Selector */}
               <div>
                 <div className="flex items-center gap-2 md:gap-3 mb-4">
-                  <CalendarIcon className="w-5 h-5 md:w-6 md:h-6 text-[#10b981]" />
+                  <CalendarIcon className="w-5 h-5 md:w-6 md:h-6 text-[#808000]" />
                   <h2 className="text-lg md:text-xl font-semibold">Select Date</h2>
                 </div>
                 
@@ -214,7 +214,7 @@ export const BookingPage = () => {
                       variant="outline" 
                       size="sm" 
                       onClick={handlePreviousDay}
-                      className="rounded-full border-2 border-[#10b981] text-[#10b981] hover:bg-emerald-50 px-3 sm:px-6 text-xs sm:text-sm"
+                      className="rounded-full border-2 border-[#808000] text-[#808000] hover:bg-yellow-50 px-3 sm:px-6 text-xs sm:text-sm"
                     >
                       Prev
                     </Button>
@@ -233,7 +233,7 @@ export const BookingPage = () => {
                       {/* Calendar Icon Button */}
                       <button
                         onClick={() => setShowCalendar(!showCalendar)}
-                        className="p-1.5 sm:p-2 rounded-lg border-2 border-[#10b981] text-[#10b981] hover:bg-emerald-50 transition-all"
+                        className="p-1.5 sm:p-2 rounded-lg border-2 border-[#808000] text-[#808000] hover:bg-yellow-50 transition-all"
                         title="Open Calendar"
                       >
                         <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -243,7 +243,7 @@ export const BookingPage = () => {
                       variant="outline" 
                       size="sm" 
                       onClick={handleNextDay}
-                      className="rounded-full border-2 border-[#10b981] text-[#10b981] hover:bg-emerald-50 px-3 sm:px-6 text-xs sm:text-sm"
+                      className="rounded-full border-2 border-[#808000] text-[#808000] hover:bg-yellow-50 px-3 sm:px-6 text-xs sm:text-sm"
                     >
                       Next
                     </Button>
@@ -284,7 +284,7 @@ export const BookingPage = () => {
                           </div>
                           <style>{`
                             .rdp {
-                              --rdp-accent-color: #10b981;
+                              --rdp-accent-color: #808000;
                               --rdp-background-color: #d1fae5;
                             }
                             .rdp-day_button:hover:not([disabled]) {
@@ -330,7 +330,7 @@ export const BookingPage = () => {
                       onClick={() => setSelectedCourt(courtNumber)}
                       className={`p-2 md:p-3 rounded-xl border-2 transition-all ${
                         selectedCourt === courtNumber
-                          ? 'border-[#10b981] bg-emerald-50'
+                          ? 'border-[#808000] bg-yellow-50'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -344,7 +344,7 @@ export const BookingPage = () => {
               {/* Time Slots */}
               <div>
                 <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                  <Clock className="w-5 h-5 md:w-6 md:h-6 text-[#10b981]" />
+                  <Clock className="w-5 h-5 md:w-6 md:h-6 text-[#808000]" />
                   <h2 className="text-lg md:text-xl font-semibold">Available Time Slots</h2>
                 </div>
 
@@ -368,8 +368,8 @@ export const BookingPage = () => {
                           booked
                             ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                             : selected
-                            ? 'border-[#10b981] bg-emerald-50 text-[#10b981] shadow-sm'
-                            : 'border-gray-200 hover:border-[#10b981] hover:bg-emerald-50'
+                            ? 'border-[#808000] bg-yellow-50 text-[#808000] shadow-sm'
+                            : 'border-gray-200 hover:border-[#808000] hover:bg-yellow-50'
                         }`}
                       >
                         <p className="font-semibold text-xs sm:text-sm">{slot.time}</p>
@@ -382,7 +382,7 @@ export const BookingPage = () => {
                 {/* Legend */}
                 <div className="flex flex-wrap gap-3 md:gap-4 mt-4 md:mt-6 pt-4 border-t border-gray-200">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 md:w-4 md:h-4 bg-emerald-50 border-2 border-[#10b981] rounded"></div>
+                    <div className="w-3 h-3 md:w-4 md:h-4 bg-yellow-50 border-2 border-[#808000] rounded"></div>
                     <span className="text-xs md:text-sm text-gray-600">Selected</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -489,7 +489,7 @@ export const BookingPage = () => {
             >
               <GlassCard className="p-8">
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-yellow-700 to-yellow-800 rounded-full flex items-center justify-center mx-auto mb-4">
                     <LogIn className="w-8 h-8 text-white" />
                   </div>
                   <h2 className="text-2xl font-bold text-gray-800 mb-2">Login Required</h2>
@@ -499,7 +499,7 @@ export const BookingPage = () => {
                 <div className="space-y-3">
                   <button
                     onClick={() => navigate('/login')}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-medium hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-md flex items-center justify-center gap-2"
+                    className="w-full px-6 py-3 bg-gradient-to-r from-yellow-700 to-yellow-800 text-white rounded-xl font-medium hover:from-yellow-700 hover:to-yellow-900 transition-all shadow-md flex items-center justify-center gap-2"
                   >
                     <LogIn className="w-5 h-5" />
                     Login to Continue
@@ -507,7 +507,7 @@ export const BookingPage = () => {
                   
                   <button
                     onClick={() => navigate('/user/register')}
-                    className="w-full px-6 py-3 bg-white border-2 border-emerald-500 text-emerald-600 rounded-xl font-medium hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
+                    className="w-full px-6 py-3 bg-white border-2 border-yellow-700 text-yellow-800 rounded-xl font-medium hover:bg-yellow-50 transition-all flex items-center justify-center gap-2"
                   >
                     <UserPlus className="w-5 h-5" />
                     Create New Account
@@ -528,3 +528,4 @@ export const BookingPage = () => {
     </div>
   );
 };
+

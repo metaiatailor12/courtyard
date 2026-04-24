@@ -67,14 +67,14 @@ export const AuthCallbackPage = () => {
 
   if (verificationPending) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center px-4">
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-yellow-50 flex items-center justify-center px-4">
         <div className="bg-white border border-gray-200 rounded-2xl p-8 w-full max-w-md text-center shadow-sm">
           <div className="mb-4 flex justify-center">
-            <Mail className="w-16 h-16 text-emerald-500" />
+            <Mail className="w-16 h-16 text-yellow-700" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-3">Verify Your Email</h1>
           <p className="text-gray-600 mb-2">We've sent a verification link to:</p>
-          <p className="text-lg font-semibold text-emerald-600 mb-6">{userEmail}</p>
+          <p className="text-lg font-semibold text-yellow-800 mb-6">{userEmail}</p>
           <p className="text-sm text-gray-600">
             Click the verification link in the email to complete your signup and access your account.
           </p>
@@ -86,3 +86,5 @@ export const AuthCallbackPage = () => {
   // No UI shown during successful authentication (silent redirect)
   return null;
 };
+
+

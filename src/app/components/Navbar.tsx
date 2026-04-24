@@ -33,7 +33,7 @@ export const Navbar = () => {
               alt="TheCourtyard logo"
               className="w-10 h-10 object-contain"
             />
-            <div className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+            <div className="text-2xl font-bold bg-gradient-to-r from-yellow-700 to-yellow-600 bg-clip-text text-transparent">
               thecourtyard
             </div>
           </Link>
@@ -46,7 +46,7 @@ export const Navbar = () => {
                 <Link
                   to={user ? '/user/home' : '/'}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActivePath('/') || isActivePath('/user/home') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    isActivePath('/') || isActivePath('/user/home') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
                   Home
@@ -54,7 +54,7 @@ export const Navbar = () => {
                 <Link
                   to="/contact"
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActivePath('/contact') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    isActivePath('/contact') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
                   Contact
@@ -62,7 +62,7 @@ export const Navbar = () => {
                 <Link
                   to="/user/booking"
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActivePath('/user/booking') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    isActivePath('/user/booking') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
                   Book Court
@@ -72,7 +72,7 @@ export const Navbar = () => {
                     <Link
                       to="/user/subscription"
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                        isActivePath('/user/subscription') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                        isActivePath('/user/subscription') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                       }`}
                     >
                       Subscription
@@ -80,7 +80,7 @@ export const Navbar = () => {
                     <Link
                       to="/user/profile"
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                        isActivePath('/user/profile') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                        isActivePath('/user/profile') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                       }`}
                     >
                       <User className="w-4 h-4" />
@@ -97,7 +97,7 @@ export const Navbar = () => {
                 <Link
                   to="/admin/dashboard"
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActivePath('/admin/dashboard') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    isActivePath('/admin/dashboard') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
@@ -106,7 +106,7 @@ export const Navbar = () => {
                 <Link
                   to="/admin/bookings"
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActivePath('/admin/bookings') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    isActivePath('/admin/bookings') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
                   <Calendar className="w-4 h-4" />
@@ -115,7 +115,7 @@ export const Navbar = () => {
                 <Link
                   to="/admin/settings"
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActivePath('/admin/settings') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    isActivePath('/admin/settings') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
                   <Settings className="w-4 h-4" />
@@ -124,7 +124,7 @@ export const Navbar = () => {
                 <Link
                   to="/admin/reviews"
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActivePath('/admin/reviews') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    isActivePath('/admin/reviews') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
                   <MessageSquare className="w-4 h-4" />
@@ -133,7 +133,7 @@ export const Navbar = () => {
                 <Link
                   to="/admin/messages"
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActivePath('/admin/messages') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    isActivePath('/admin/messages') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
                   <Mail className="w-4 h-4" />
@@ -179,7 +179,7 @@ export const Navbar = () => {
                     to={user ? '/user/home' : '/'}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                      isActivePath('/') || isActivePath('/user/home') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      isActivePath('/') || isActivePath('/user/home') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     Home
@@ -188,7 +188,7 @@ export const Navbar = () => {
                     to="/contact"
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                      isActivePath('/contact') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      isActivePath('/contact') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     <Phone className="w-4 h-4" />
@@ -198,7 +198,7 @@ export const Navbar = () => {
                     to="/user/booking"
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                      isActivePath('/user/booking') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      isActivePath('/user/booking') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     <Calendar className="w-4 h-4" />
@@ -210,7 +210,7 @@ export const Navbar = () => {
                         to="/user/subscription"
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                          isActivePath('/user/subscription') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                          isActivePath('/user/subscription') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                         }`}
                       >
                         <CreditCard className="w-4 h-4" />
@@ -220,7 +220,7 @@ export const Navbar = () => {
                         to="/user/profile"
                         onClick={() => setMobileMenuOpen(false)}
                         className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                          isActivePath('/user/profile') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                          isActivePath('/user/profile') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                         }`}
                       >
                         <User className="w-4 h-4" />
@@ -236,7 +236,7 @@ export const Navbar = () => {
                         navigate('/user/subscription');
                         setMobileMenuOpen(false);
                       }}
-                      className="mt-2 bg-gradient-to-r from-emerald-500 to-cyan-600"
+                      className="mt-2 bg-gradient-to-r from-yellow-600 to-yellow-500"
                     >
                       <CreditCard className="w-4 h-4 mr-2" />
                       Subscribe Now
@@ -251,7 +251,7 @@ export const Navbar = () => {
                     to="/admin/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                      isActivePath('/admin/dashboard') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      isActivePath('/admin/dashboard') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     <LayoutDashboard className="w-4 h-4" />
@@ -261,7 +261,7 @@ export const Navbar = () => {
                     to="/admin/bookings"
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                      isActivePath('/admin/bookings') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      isActivePath('/admin/bookings') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     <Calendar className="w-4 h-4" />
@@ -271,7 +271,7 @@ export const Navbar = () => {
                     to="/admin/settings"
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                      isActivePath('/admin/settings') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      isActivePath('/admin/settings') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     <Settings className="w-4 h-4" />
@@ -281,7 +281,7 @@ export const Navbar = () => {
                     to="/admin/reviews"
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                      isActivePath('/admin/reviews') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      isActivePath('/admin/reviews') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -291,7 +291,7 @@ export const Navbar = () => {
                     to="/admin/messages"
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                      isActivePath('/admin/messages') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      isActivePath('/admin/messages') ? 'bg-yellow-50 text-[#808000] font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     <Mail className="w-4 h-4" />
@@ -303,7 +303,7 @@ export const Navbar = () => {
               {user && (
                 <div className="mt-4 pt-4 border-t border-gray-100">
                   <div className="flex items-center gap-3 px-4 mb-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-full flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gradient-to-br from-yellow-600 to-yellow-500 rounded-full flex items-center justify-center">
                       <User className="w-5 h-5 text-white" />
                     </div>
                     <div>

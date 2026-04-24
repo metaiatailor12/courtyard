@@ -117,7 +117,7 @@ export const UserHome = () => {
                 />
               </AnimatePresence>
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-50 to-cyan-50 text-gray-500">
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-yellow-50 to-yellow-50 text-gray-500">
                 No gallery images available.
               </div>
             )}
@@ -179,7 +179,7 @@ export const UserHome = () => {
               
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-[#10b981] mt-1" />
+                  <MapPin className="w-5 h-5 text-[#808000] mt-1" />
                   <div>
                     <p className="font-medium text-gray-800">Location</p>
                     <p className="text-gray-600 whitespace-pre-line">{venueAddress || 'Loading venue address from Firestore...'}</p>
@@ -187,7 +187,7 @@ export const UserHome = () => {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-[#10b981] mt-1" />
+                  <Phone className="w-5 h-5 text-[#808000] mt-1" />
                   <div>
                     <p className="font-medium text-gray-800">Contact Number</p>
                     <p className="text-gray-600">{venuePhone || 'Loading venue phone from Firestore...'}</p>
@@ -195,7 +195,7 @@ export const UserHome = () => {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-[#10b981] mt-1" />
+                  <Mail className="w-5 h-5 text-[#808000] mt-1" />
                   <div>
                     <p className="font-medium text-gray-800">Email</p>
                     <p className="text-gray-600">{venueEmail || 'Loading venue email from Firestore...'}</p>
@@ -203,7 +203,7 @@ export const UserHome = () => {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-[#10b981] mt-1" />
+                  <Clock className="w-5 h-5 text-[#808000] mt-1" />
                   <div>
                     <p className="font-medium text-gray-800">Operating Hours</p>
                     <p className="text-gray-600">{venueHours || 'Loading operating hours from Firestore...'}</p>
@@ -250,8 +250,8 @@ export const UserHome = () => {
                     </div>
                     <p className="text-gray-600">{review.comment}</p>
                     {review.adminReply ? (
-                      <div className="mt-3 rounded-lg bg-emerald-50 border border-emerald-100 p-3">
-                        <p className="text-xs font-semibold text-emerald-700 mb-1">
+                      <div className="mt-3 rounded-lg bg-yellow-50 border border-yellow-100 p-3">
+                        <p className="text-xs font-semibold text-yellow-900 mb-1">
                           Reply from {review.adminReplyBy || 'Admin'}
                         </p>
                         <p className="text-sm text-gray-700">{review.adminReply}</p>
@@ -331,7 +331,7 @@ export const UserHome = () => {
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder="Share your experience..."
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent transition-all min-h-[100px]"
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#808000] focus:border-transparent transition-all min-h-[100px]"
                 />
               </div>
 
@@ -344,7 +344,7 @@ export const UserHome = () => {
                 {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
               </Button>
               {feedbackError ? <p className="text-sm text-red-600 mt-3">{feedbackError}</p> : null}
-              {feedbackSuccess ? <p className="text-sm text-emerald-700 mt-3">{feedbackSuccess}</p> : null}
+              {feedbackSuccess ? <p className="text-sm text-yellow-900 mt-3">{feedbackSuccess}</p> : null}
             </GlassCard>
           </div>
         </div>
@@ -352,3 +352,4 @@ export const UserHome = () => {
     </div>
   );
 };
+

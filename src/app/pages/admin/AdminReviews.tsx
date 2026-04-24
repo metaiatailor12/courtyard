@@ -178,8 +178,8 @@ export const AdminReviews = () => {
                 <p className="text-gray-700 mb-4">{review.comment}</p>
 
                 {review.adminReply ? (
-                  <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                    <p className="text-xs font-semibold text-emerald-700 mb-1 flex items-center gap-2">
+                  <div className="mb-4 rounded-xl border border-yellow-100 bg-yellow-50 p-3">
+                    <p className="text-xs font-semibold text-yellow-900 mb-1 flex items-center gap-2">
                       <MessageSquare className="w-4 h-4" />
                       Reply from {review.adminReplyBy || 'Admin'}
                     </p>
@@ -193,7 +193,7 @@ export const AdminReviews = () => {
                     value={replyDrafts[review.id] || ''}
                     onChange={(event) => setReplyDrafts((prev) => ({ ...prev, [review.id]: event.target.value }))}
                     placeholder="Write a response for this user..."
-                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#10b981] min-h-[100px]"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#808000] min-h-[100px]"
                   />
                   <div className="flex justify-end">
                     <Button
@@ -214,3 +214,4 @@ export const AdminReviews = () => {
     </div>
   );
 };
+

@@ -76,13 +76,13 @@ export const SignupPage = () => {
 
   if (verificationSent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-cyan-50">
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-50">
         <Navbar />
         <div className="container mx-auto px-4 py-12 max-w-md">
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
             <div className="flex justify-center mb-6">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                <Mail className="w-8 h-8 text-green-600" />
+                <Mail className="w-8 h-8 text-yellow-700" />
               </div>
             </div>
             <h1 className="text-3xl font-bold text-gray-800 mb-3">Verify Your Email</h1>
@@ -111,7 +111,7 @@ export const SignupPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-50">
       <Navbar />
       <div className="container mx-auto px-4 py-12 max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
@@ -137,7 +137,7 @@ export const SignupPage = () => {
                 onChange={handleChange}
                 placeholder="John Doe"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-transparent"
               />
             </div>
 
@@ -152,7 +152,7 @@ export const SignupPage = () => {
                 onChange={handleChange}
                 placeholder="john@example.com"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-transparent"
               />
             </div>
 
@@ -167,7 +167,7 @@ export const SignupPage = () => {
                 onChange={handleChange}
                 placeholder="At least 8 characters"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-transparent"
               />
             </div>
 
@@ -182,7 +182,7 @@ export const SignupPage = () => {
                 onChange={handleChange}
                 placeholder="Confirm your password"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-transparent"
               />
             </div>
 
@@ -207,7 +207,7 @@ export const SignupPage = () => {
             Already have an account?{' '}
             <button
               onClick={() => navigate('/login')}
-              className="text-emerald-600 hover:text-emerald-700 font-semibold"
+              className="text-yellow-800 hover:text-yellow-900 font-semibold"
             >
               Sign in
             </button>
@@ -217,3 +217,5 @@ export const SignupPage = () => {
     </div>
   );
 };
+
+

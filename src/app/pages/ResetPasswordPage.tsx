@@ -57,7 +57,7 @@ export const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <button
           onClick={() => navigate(loginPath)}
@@ -121,7 +121,7 @@ export const ResetPasswordPage = () => {
           ) : null}
 
           <p className="mt-6 text-center text-sm text-gray-600">
-            <Link to={loginPath} className="text-[#10b981] hover:text-[#059669] font-medium">
+            <Link to={loginPath} className="text-[#808000] hover:text-[#5D5E1F] font-medium">
               Return to login
             </Link>
           </p>
@@ -130,3 +130,5 @@ export const ResetPasswordPage = () => {
     </div>
   );
 };
+
+

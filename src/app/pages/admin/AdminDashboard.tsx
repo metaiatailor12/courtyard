@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Users, Calendar, TrendingUp, DollarSign, Clock, CheckCircle } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
-import { useBooking } from '../../context/BookingContext';
+import { useBooking, getEffectiveBookingStatus } from '../../context/BookingContext';
 import { RevenueChart } from '../../components/charts/RevenueChart';
 import { BookingStatusChart } from '../../components/charts/BookingStatusChart';
 import { useNavigate } from 'react-router';
@@ -153,13 +153,13 @@ export const AdminDashboard = () => {
   }, [activeBookings, subscriptions]);
 
   const bookingStatusData = useMemo(() => {
-    const upcoming = bookings.filter(booking => booking.status === 'upcoming').length;
-    const completed = bookings.filter(booking => booking.status === 'completed').length;
-    const cancelled = bookings.filter(booking => booking.status === 'cancelled').length;
+    const upcoming = bookings.filter(booking => getEffectiveBookingStatus(booking) === 'upcoming').length;
+    const completed = bookings.filter(booking => getEffectiveBookingStatus(booking) === 'completed').length;
+    const cancelled = bookings.filter(booking => getEffectiveBookingStatus(booking) === 'cancelled').length;
 
     return [
       { name: 'Upcoming', value: upcoming, color: '#3b82f6' },
-      { name: 'Completed', value: completed, color: '#10b981' },
+      { name: 'Completed', value: completed, color: '#808000' },
       { name: 'Cancelled', value: cancelled, color: '#ef4444' },
     ];
   }, [bookings]);
@@ -177,7 +177,7 @@ export const AdminDashboard = () => {
       value: `₹${liveStats.totalRevenue.toLocaleString()}`,
       change: monthLabel,
       icon: <DollarSign className="w-6 h-6" />,
-      color: 'from-green-500 to-green-600',
+      color: 'from-yellow-600 to-yellow-700',
     },
     {
       label: 'Active Users',
@@ -195,7 +195,7 @@ export const AdminDashboard = () => {
     },
   ];
 
-  const upcomingBookings = bookings.filter(b => b.status === 'upcoming').slice(0, 5);
+  const upcomingBookings = bookings.filter(b => getEffectiveBookingStatus(b) === 'upcoming').slice(0, 5);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -215,7 +215,7 @@ export const AdminDashboard = () => {
                 <div className={`w-10 h-10 md:w-12 md:h-12 bg-gradient-to-br ${stat.color} rounded-xl flex items-center justify-center text-white`}>
                   {stat.icon}
                 </div>
-                <span className="text-xs md:text-sm font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                <span className="text-xs md:text-sm font-medium text-yellow-700 bg-green-50 px-2 py-1 rounded">
                   {stat.change}
                 </span>
               </div>
@@ -242,7 +242,7 @@ export const AdminDashboard = () => {
           <GlassCard className="p-4 md:p-6 lg:col-span-2">
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <h2 className="text-lg md:text-xl font-semibold">Upcoming Bookings</h2>
-              <button className="text-xs md:text-sm text-[#10b981] hover:text-[#059669] font-medium">
+              <button className="text-xs md:text-sm text-[#808000] hover:text-[#5D5E1F] font-medium">
                 View All
               </button>
             </div>
@@ -258,7 +258,7 @@ export const AdminDashboard = () => {
                       <p className="text-xs md:text-sm text-gray-600 truncate">{booking.date} • {booking.slots.length} slots</p>
                     </div>
                   </div>
-                  <span className="font-semibold text-[#10b981] text-sm md:text-base ml-2 flex-shrink-0">₹{booking.totalAmount}</span>
+                  <span className="font-semibold text-[#808000] text-sm md:text-base ml-2 flex-shrink-0">₹{booking.totalAmount}</span>
                 </div>
               ))}
             </div>
@@ -277,7 +277,7 @@ export const AdminDashboard = () => {
               </button>
               <button 
                 onClick={() => setShowRevenueModal(true)}
-                className="w-full p-3 md:p-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all flex items-center justify-center md:justify-start gap-3 text-sm md:text-base"
+                className="w-full p-3 md:p-4 bg-gradient-to-r from-yellow-600 to-yellow-700 text-white rounded-xl hover:from-yellow-700 hover:to-green-700 transition-all flex items-center justify-center md:justify-start gap-3 text-sm md:text-base"
               >
                 <DollarSign className="w-4 h-4 md:w-5 md:h-5" />
                 <span>Revenue Report</span>
@@ -316,12 +316,12 @@ export const AdminDashboard = () => {
             <div className="p-6 space-y-6">
               {/* Summary Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-100">
-                  <p className="text-green-600 text-sm font-medium mb-2">Total Revenue</p>
+                <div className="bg-gradient-to-br from-green-50 to-yellow-50 p-6 rounded-xl border border-green-100">
+                  <p className="text-yellow-700 text-sm font-medium mb-2">Total Revenue</p>
                   <p className="text-3xl font-bold text-gray-800">₹{liveStats.totalRevenue.toLocaleString()}</p>
-                  <p className="text-xs text-green-600 mt-2">Live current month value</p>
+                  <p className="text-xs text-yellow-700 mt-2">Live current month value</p>
                 </div>
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl border border-blue-100">
+                <div className="bg-gradient-to-br from-blue-50 to-yellow-50 p-6 rounded-xl border border-blue-100">
                   <p className="text-blue-600 text-sm font-medium mb-2">Total Bookings</p>
                   <p className="text-3xl font-bold text-gray-800">{liveStats.totalBookings.toLocaleString()}</p>
                   <p className="text-xs text-blue-600 mt-2">Live database count</p>
@@ -339,7 +339,7 @@ export const AdminDashboard = () => {
                 <div className="space-y-3">
                   {[
                     { label: 'Court Bookings', amount: liveStats.bookingRevenue, percentage: liveStats.totalRevenue > 0 ? (liveStats.bookingRevenue / liveStats.totalRevenue) * 100 : 0, color: 'bg-blue-500' },
-                    { label: 'Subscriptions', amount: liveStats.subscriptionRevenue, percentage: liveStats.totalRevenue > 0 ? (liveStats.subscriptionRevenue / liveStats.totalRevenue) * 100 : 0, color: 'bg-green-500' },
+                    { label: 'Subscriptions', amount: liveStats.subscriptionRevenue, percentage: liveStats.totalRevenue > 0 ? (liveStats.subscriptionRevenue / liveStats.totalRevenue) * 100 : 0, color: 'bg-yellow-600' },
                   ].map((item, index) => (
                     <div key={index}>
                       <div className="flex items-center justify-between mb-2">
@@ -361,7 +361,7 @@ export const AdminDashboard = () => {
                   {revenueChartData.map((item, index) => (
                     <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg">
                       <span className="text-sm font-medium text-gray-700">{item.month}</span>
-                      <span className="text-sm font-semibold text-green-600">₹{item.revenue.toLocaleString()}</span>
+                      <span className="text-sm font-semibold text-yellow-700">₹{item.revenue.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
@@ -393,15 +393,15 @@ export const AdminDashboard = () => {
             <div className="p-6 space-y-6">
               {/* User Stats */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-6 rounded-xl border border-blue-100">
+                <div className="bg-gradient-to-br from-blue-50 to-yellow-50 p-6 rounded-xl border border-blue-100">
                   <p className="text-blue-600 text-sm font-medium mb-2">Total Users</p>
                   <p className="text-3xl font-bold text-gray-800">{users.length.toLocaleString()}</p>
                   <p className="text-xs text-blue-600 mt-2">Live users from database</p>
                 </div>
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-xl border border-green-100">
-                  <p className="text-green-600 text-sm font-medium mb-2">Active Users</p>
+                <div className="bg-gradient-to-br from-green-50 to-yellow-50 p-6 rounded-xl border border-green-100">
+                  <p className="text-yellow-700 text-sm font-medium mb-2">Active Users</p>
                   <p className="text-3xl font-bold text-gray-800">{users.filter(user => user.status !== 'Inactive').length.toLocaleString()}</p>
-                  <p className="text-xs text-green-600 mt-2">Registered and active users</p>
+                  <p className="text-xs text-yellow-700 mt-2">Registered and active users</p>
                 </div>
                 <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-6 rounded-xl border border-purple-100">
                   <p className="text-purple-600 text-sm font-medium mb-2">Subscribers</p>
@@ -422,7 +422,7 @@ export const AdminDashboard = () => {
                     users.map((user) => (
                       <div key={user.id} className="flex items-center justify-between p-4 bg-white rounded-lg hover:shadow-md transition-shadow">
                         <div className="flex items-center gap-4 flex-1">
-                          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          <div className="w-12 h-12 bg-gradient-to-br from-yellow-700 to-yellow-600 rounded-full flex items-center justify-center text-white font-semibold">
                             {user.name.split(' ').map(n => n[0]).join('')}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -453,7 +453,7 @@ export const AdminDashboard = () => {
 
               {/* Action Buttons */}
               <div className="flex gap-3">
-                <button className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-cyan-600 text-white rounded-xl hover:from-emerald-600 hover:to-cyan-700 transition-all font-medium">
+                <button className="flex-1 px-4 py-3 bg-gradient-to-r from-yellow-700 to-yellow-600 text-white rounded-xl hover:from-yellow-700 hover:to-yellow-700 transition-all font-medium">
                   Export Users
                 </button>
                 <button className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium">
@@ -467,3 +467,4 @@ export const AdminDashboard = () => {
     </div>
   );
 };
+

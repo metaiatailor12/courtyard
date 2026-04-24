@@ -160,7 +160,7 @@ export const CreateSubscriptionModal = ({ isOpen, onClose, onCreate }: CreateSub
                 <select
                   value={formData.court}
                   onChange={(e) => setFormData({ ...formData, court: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#808000] focus:border-transparent"
                   required
                 >
                   <option value="Court 1">Court 1</option>
@@ -175,7 +175,7 @@ export const CreateSubscriptionModal = ({ isOpen, onClose, onCreate }: CreateSub
                 <select
                   value={formData.timeSlot}
                   onChange={(e) => setFormData({ ...formData, timeSlot: e.target.value })}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#10b981] focus:border-transparent"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#808000] focus:border-transparent"
                   required
                 >
                   {timeSlots.map((slot) => (
@@ -224,7 +224,7 @@ export const CreateSubscriptionModal = ({ isOpen, onClose, onCreate }: CreateSub
                   value="cash"
                   checked={formData.paymentMethod === 'cash'}
                   onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                  className="w-4 h-4 text-[#10b981] focus:ring-[#10b981]"
+                  className="w-4 h-4 text-[#808000] focus:ring-[#808000]"
                 />
                 <span className="text-sm font-medium text-gray-700">Cash</span>
               </label>
@@ -235,7 +235,7 @@ export const CreateSubscriptionModal = ({ isOpen, onClose, onCreate }: CreateSub
                   value="card"
                   checked={formData.paymentMethod === 'card'}
                   onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                  className="w-4 h-4 text-[#10b981] focus:ring-[#10b981]"
+                  className="w-4 h-4 text-[#808000] focus:ring-[#808000]"
                 />
                 <span className="text-sm font-medium text-gray-700">Card/UPI</span>
               </label>
@@ -261,7 +261,7 @@ export const CreateSubscriptionModal = ({ isOpen, onClose, onCreate }: CreateSub
                 </div>
                 <div className="flex justify-between pt-2 border-t border-gray-200">
                   <span className="font-semibold text-gray-800">Total</span>
-                  <span className="font-bold text-[#10b981]">₹2,500</span>
+                  <span className="font-bold text-[#808000]">₹2,500</span>
                 </div>
               </div>
               <div className="mt-3 p-3 bg-blue-50 rounded-lg">
@@ -288,3 +288,4 @@ export const CreateSubscriptionModal = ({ isOpen, onClose, onCreate }: CreateSub
     </div>
   );
 };
+

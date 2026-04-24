@@ -180,7 +180,7 @@ export const UserRegister = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-yellow-50 flex items-center justify-center p-4 py-12">
       <div className="w-full max-w-md">
         <button
           onClick={() => navigate('/')}
@@ -327,7 +327,7 @@ export const UserRegister = () => {
 
           <p className="mt-6 text-center text-sm text-gray-600">
             Already have an account?{' '}
-            <Link to="/user/login" className="text-[#10b981] hover:text-[#059669] font-medium">
+            <Link to="/user/login" className="text-[#808000] hover:text-[#5D5E1F] font-medium">
               Login here
             </Link>
           </p>
@@ -336,3 +336,4 @@ export const UserRegister = () => {
     </div>
   );
 };
+

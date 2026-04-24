@@ -157,7 +157,7 @@ export const PaymentPage = () => {
               </div>
               <div className="flex justify-between text-lg md:text-2xl font-bold text-gray-800 pt-3 border-t border-gray-200">
                 <span>Total Amount</span>
-                <span className="text-[#10b981]">₹{total}</span>
+                <span className="text-[#808000]">₹{total}</span>
               </div>
             </div>
           </GlassCard>
@@ -186,7 +186,7 @@ export const PaymentPage = () => {
                     <Radio className={`w-4 h-4 ${paymentMethod === 'online' ? 'text-blue-600' : 'text-gray-400'}`} />
                     <span className="font-medium text-sm md:text-base">Pay Online</span>
                   </div>
-                  <Lock className="w-4 h-4 md:w-5 md:h-5 text-green-600" />
+                  <Lock className="w-4 h-4 md:w-5 md:h-5 text-yellow-700" />
                 </div>
                 <p className="text-xs md:text-sm text-gray-600 mb-3">
                   You will be redirected to a secure payment gateway.
@@ -210,14 +210,14 @@ export const PaymentPage = () => {
               <button
                 type="button"
                 onClick={() => setPaymentMethod('onsite')}
-                className={`w-full p-3 md:p-4 rounded-xl border-2 text-left transition-all ${paymentMethod === 'onsite' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                className={`w-full p-3 md:p-4 rounded-xl border-2 text-left transition-all ${paymentMethod === 'onsite' ? 'border-yellow-700 bg-yellow-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Building2 className={`w-4 h-4 ${paymentMethod === 'onsite' ? 'text-emerald-600' : 'text-gray-400'}`} />
+                    <Building2 className={`w-4 h-4 ${paymentMethod === 'onsite' ? 'text-yellow-800' : 'text-gray-400'}`} />
                     <span className="font-medium text-sm md:text-base">Pay Onsite</span>
                   </div>
-                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">No online payment</span>
+                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-yellow-100 text-yellow-900">No online payment</span>
                 </div>
                 <p className="text-xs md:text-sm text-gray-600">
                   Reserve the court now and pay at the venue. The slot is booked immediately.

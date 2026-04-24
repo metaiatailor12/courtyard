@@ -19,6 +19,10 @@ const mapLoginError = (message: string) => {
     return 'Invalid email or password.';
   }
 
+  if (/please verify your email/i.test(message)) {
+    return 'Please verify your email before logging in. Check your inbox for the verification link.';
+  }
+
   if (/email not confirmed|confirm your email/i.test(message)) {
     if (!requiresEmailVerification) {
       return 'Unable to sign in. Please contact support if this continues.';
@@ -121,7 +125,9 @@ export const UserLogin = () => {
       const message = mapLoginError(rawMessage);
       setErrors(prev => ({ ...prev, password: message }));
 
-      if (requiresEmailVerification && /email not confirmed|confirm your email/i.test(message)) {
+      if (/please verify your email/i.test(rawMessage)) {
+        showInfoToast('Verification required', 'Check your inbox for the verification email. Once verified, you can log in.');
+      } else if (requiresEmailVerification && /email not confirmed|confirm your email/i.test(rawMessage)) {
         showInfoToast('Verification required', 'Please verify your email before logging in.');
       } else {
         showErrorToast('Login failed', message);
@@ -131,7 +137,7 @@ export const UserLogin = () => {
     }
   };
 
-  const isEmailUnconfirmedError = requiresEmailVerification && /email not confirmed|confirm your email/i.test(errors.password || '');
+  const isEmailUnconfirmedError = requiresEmailVerification && /email not confirmed|confirm your email|please verify your email/i.test(errors.password || '');
 
   const handleResendVerification = async () => {
     const normalizedEmail = formData.email.trim().toLowerCase();
@@ -181,7 +187,7 @@ export const UserLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <button
           onClick={() => navigate('/')}
@@ -198,7 +204,7 @@ export const UserLogin = () => {
           </div>
 
           {notice && (
-            <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
               {notice}
             </div>
           )}
@@ -255,7 +261,7 @@ export const UserLogin = () => {
             )}
 
             <div className="text-right">
-              <Link to="/user/forgot-password" className="text-sm text-[#10b981] hover:text-[#059669]">
+              <Link to="/user/forgot-password" className="text-sm text-[#808000] hover:text-[#5D5E1F]">
                 Forgot Password?
               </Link>
             </div>
@@ -304,7 +310,7 @@ export const UserLogin = () => {
 
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link to="/user/register" className="text-[#10b981] hover:text-[#059669] font-medium">
+            <Link to="/user/register" className="text-[#808000] hover:text-[#5D5E1F] font-medium">
               Register here
             </Link>
           </p>
@@ -313,3 +319,4 @@ export const UserLogin = () => {
     </div>
   );
 };
+

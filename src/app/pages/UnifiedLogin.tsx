@@ -19,6 +19,10 @@ const mapLoginError = (message: string) => {
     return 'Invalid email or password.';
   }
 
+  if (/please verify your email/i.test(message)) {
+    return 'Please verify your email before logging in. Check your inbox for the verification link.';
+  }
+
   if (/email not confirmed|confirm your email/i.test(message)) {
     if (!requiresEmailVerification) {
       return 'Unable to sign in. Please contact support if this continues.';
@@ -171,7 +175,9 @@ export const UnifiedLogin = () => {
       const message = mapLoginError(rawMessage);
       setErrors(prev => ({ ...prev, password: message }));
 
-      if (requiresEmailVerification && /email not confirmed|confirm your email/i.test(message)) {
+      if (/please verify your email/i.test(rawMessage)) {
+        showInfoToast('Verification required', 'Check your inbox for the verification email. Once verified, you can log in.');
+      } else if (requiresEmailVerification && /email not confirmed|confirm your email/i.test(rawMessage)) {
         showInfoToast('Verification required', 'Please verify your email before logging in.');
       } else {
         showErrorToast('Login failed', message);
@@ -218,7 +224,7 @@ export const UnifiedLogin = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-cyan-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-white to-yellow-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <button
           onClick={() => navigate('/')}
@@ -295,7 +301,7 @@ export const UnifiedLogin = () => {
               Don't have an account?{' '}
               <Link
                 to="/user/register"
-                className="text-emerald-600 hover:text-emerald-700 font-semibold"
+                className="text-yellow-800 hover:text-yellow-900 font-semibold"
               >
                 Sign up
               </Link>
@@ -303,7 +309,7 @@ export const UnifiedLogin = () => {
             <p className="text-gray-600">
               <Link
                 to="/user/forgot-password"
-                className="text-emerald-600 hover:text-emerald-700 font-semibold"
+                className="text-yellow-800 hover:text-yellow-900 font-semibold"
               >
                 Forgot password?
               </Link>
@@ -314,3 +320,5 @@ export const UnifiedLogin = () => {
     </div>
   );
 };
+
+

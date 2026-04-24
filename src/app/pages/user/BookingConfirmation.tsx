@@ -40,7 +40,7 @@ export const BookingConfirmation = () => {
               className="flex justify-center mb-6"
             >
               <div className="w-20 h-20 md:w-24 md:h-24 bg-green-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-12 h-12 md:w-16 md:h-16 text-green-600" />
+                <CheckCircle className="w-12 h-12 md:w-16 md:h-16 text-yellow-700" />
               </div>
             </motion.div>
 
@@ -50,7 +50,7 @@ export const BookingConfirmation = () => {
             </p>
 
             {/* Booking Details */}
-            <div className="bg-gradient-to-br from-emerald-50 to-cyan-50 rounded-2xl p-4 md:p-6 mb-4 md:mb-6 text-left">
+            <div className="bg-gradient-to-br from-yellow-50 to-yellow-50 rounded-2xl p-4 md:p-6 mb-4 md:mb-6 text-left">
               <div className="grid md:grid-cols-2 gap-3 md:gap-4">
                 <div>
                   <p className="text-xs md:text-sm text-gray-600 mb-1">Booking ID</p>
@@ -78,7 +78,7 @@ export const BookingConfirmation = () => {
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-emerald-200">
+              <div className="mt-4 pt-4 border-t border-yellow-200">
                 <p className="text-xs md:text-sm text-gray-600 mb-2">Booked Slots</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
                   {latestBooking.slots.map((slot) => (
@@ -90,9 +90,9 @@ export const BookingConfirmation = () => {
                 </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-emerald-200 flex justify-between items-center">
+              <div className="mt-4 pt-4 border-t border-yellow-200 flex justify-between items-center">
                 <span className="text-base md:text-lg font-semibold">Total Paid</span>
-                <span className="text-xl md:text-2xl font-bold text-[#10b981]">₹{latestBooking.totalAmount}</span>
+                <span className="text-xl md:text-2xl font-bold text-[#808000]">₹{latestBooking.totalAmount}</span>
               </div>
             </div>
 
@@ -138,11 +138,11 @@ export const BookingConfirmation = () => {
             <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-200">
               <p className="text-xs md:text-sm text-gray-600">
                 Need help? Contact us at{' '}
-                <a href={supportEmail ? `mailto:${supportEmail}` : '#'} className="text-[#10b981] hover:underline">
+                <a href={supportEmail ? `mailto:${supportEmail}` : '#'} className="text-[#808000] hover:underline">
                   {supportEmail || 'support email unavailable'}
                 </a>{' '}
                 or call{' '}
-                <a href={`tel:${supportPhone}`} className="text-[#10b981] hover:underline">
+                <a href={`tel:${supportPhone}`} className="text-[#808000] hover:underline">
                   {supportPhone || 'support phone unavailable'}
                 </a>
               </p>
@@ -153,3 +153,4 @@ export const BookingConfirmation = () => {
     </div>
   );
 };
+
