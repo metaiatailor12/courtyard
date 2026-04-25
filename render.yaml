@@ -36,7 +36,7 @@ services:
           name: credentials
           property: gmailPassword
       - key: CLIENT_ORIGIN
-        value: https://thecourtyard.vercel.app
+        value: https://courtyard-pi.vercel.app
       - key: SUPABASE_URL
         value: your_supabase_url
       - key: SUPABASE_KEY
