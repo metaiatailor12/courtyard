@@ -100,19 +100,11 @@ export const router = createBrowserRouter([
         element: <AuthCallbackPage />,
       },
       {
+        path: "admin",
+        element: <AdminDashboard />,
+      },
+      {
         path: "admin/login",
-        element: <UnifiedLogin />,
-      },
-      {
-        path: "admin/login.",
-        element: <UnifiedLogin />,
-      },
-      {
-        path: "login/admin",
-        element: <UnifiedLogin />,
-      },
-      {
-        path: "login/admin.",
         element: <UnifiedLogin />,
       },
       {
