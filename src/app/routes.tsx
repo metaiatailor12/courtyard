@@ -25,6 +25,7 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { NotFound } from "./pages/NotFound";
 import { AuthCallbackPage } from "./pages/AuthCallbackPage";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
@@ -101,7 +102,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "admin",
-        element: <AdminDashboard />,
+        element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>,
       },
       {
         path: "admin/login",
@@ -117,27 +118,27 @@ export const router = createBrowserRouter([
       },
       {
         path: "admin/dashboard",
-        element: <AdminDashboard />,
+        element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>,
       },
       {
         path: "admin/bookings",
-        element: <AdminBookings />,
+        element: <ProtectedRoute requiredRole="admin"><AdminBookings /></ProtectedRoute>,
       },
       {
         path: "admin/settings",
-        element: <AdminSettings />,
+        element: <ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>,
       },
       {
         path: "admin/reviews",
-        element: <AdminReviews />,
+        element: <ProtectedRoute requiredRole="admin"><AdminReviews /></ProtectedRoute>,
       },
       {
         path: "admin/messages",
-        element: <AdminMessages />,
+        element: <ProtectedRoute requiredRole="admin"><AdminMessages /></ProtectedRoute>,
       },
       {
         path: "admin/settings/gallery",
-        element: <AdminGalleryPage />,
+        element: <ProtectedRoute requiredRole="admin"><AdminGalleryPage /></ProtectedRoute>,
       },
       {
         path: "*",

@@ -7,6 +7,8 @@ import { RevenueChart } from '../../components/charts/RevenueChart';
 import { BookingStatusChart } from '../../components/charts/BookingStatusChart';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
+import { getAPI_BASE_URL } from '../../lib/apiConfig';
+import { getCurrentUserToken } from '../../lib/firebaseClient';
 import { format } from 'date-fns';
 
 export const AdminDashboard = () => {
@@ -48,7 +50,7 @@ export const AdminDashboard = () => {
           return;
         }
 
-        const response = await fetch(`${API_BASE_URL}/admin/users`, {
+        const response = await fetch(`${getAPI_BASE_URL()}/admin/users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
