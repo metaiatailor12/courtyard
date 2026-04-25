@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { getCurrentUserToken } from '../lib/firebaseClient';
+import { getAPI_BASE_URL } from '../lib/apiConfig';
 import { showErrorToast } from '../utils/notificationHelpers';
 
 export interface LandingPageContent {
@@ -84,12 +85,6 @@ interface LandingPageContextType {
 
 const LandingPageContext = createContext<LandingPageContextType | undefined>(undefined);
 
-const RAW_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
-const API_BASE_URL =
-  typeof window !== 'undefined' && window.location.hostname.includes('localhost')
-    ? '/api'
-    : RAW_API_BASE_URL;
-
 const EMPTY_LANDING_CONTENT: LandingPageContent = {
   heroTitle: '',
   heroSubtitle: '',
@@ -133,9 +128,9 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
     const loadRemoteContent = async () => {
       try {
         const [settingsResponse, galleryResponse, reviewsResponse] = await Promise.all([
-          fetch(`${API_BASE_URL}/settings`),
-          fetch(`${API_BASE_URL}/gallery`),
-          fetch(`${API_BASE_URL}/reviews`),
+          fetch(`${getAPI_BASE_URL()}/settings`),
+          fetch(`${getAPI_BASE_URL()}/gallery`),
+          fetch(`${getAPI_BASE_URL()}/reviews`),
         ]);
 
         const settingsPayload = await settingsResponse.json();
@@ -189,7 +184,7 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
         throw new Error('Please sign in again and retry.');
       }
 
-      const response = await fetch(`${API_BASE_URL}/settings`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/settings`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

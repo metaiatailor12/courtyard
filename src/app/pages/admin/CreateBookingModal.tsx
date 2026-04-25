@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { getAPI_BASE_URL } from '../../lib/apiConfig';
 
 interface CreateBookingModalProps {
   isOpen: boolean;
@@ -18,7 +19,6 @@ export const CreateBookingModal = ({
   existingBookings = [],
   existingSubscriptions = [],
 }: CreateBookingModalProps) => {
-  const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
   const [formData, setFormData] = useState({
     userName: '',
     userEmail: '',
@@ -82,7 +82,7 @@ export const CreateBookingModal = ({
     const loadAvailability = async () => {
       try {
         const response = await fetch(
-          `${API_BASE_URL}/availability?date=${encodeURIComponent(formData.date)}&court=${courtNumber}`
+          `${getAPI_BASE_URL()}/availability?date=${encodeURIComponent(formData.date)}&court=${courtNumber}`
         );
 
         const payload = await response.json().catch(() => null);
@@ -110,7 +110,7 @@ export const CreateBookingModal = ({
     return () => {
       active = false;
     };
-  }, [API_BASE_URL, formData.court, formData.date, isOpen]);
+  }, [formData.court, formData.date, isOpen]);
 
   const localBlockedSlots = useMemo(() => {
     const dateKey = normalizeDateValue(formData.date);

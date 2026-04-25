@@ -9,6 +9,7 @@ import { Button } from '../../components/Button';
 import { useBooking, TimeSlot } from '../../context/BookingContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
+import { getAPI_BASE_URL } from '../../lib/apiConfig';
 import { motion, AnimatePresence } from 'motion/react';
 
 const formatHourLabel = (hour: number) => {
@@ -72,7 +73,7 @@ export const BookingPage = () => {
     const loadAvailability = async () => {
       try {
         const date = selectedDate.toISOString().split('T')[0];
-        const response = await fetch(`/api/availability?date=${date}&court=${selectedCourt}`);
+        const response = await fetch(`${getAPI_BASE_URL()}/availability?date=${date}&court=${selectedCourt}`);
 
         if (!response.ok) {
           return;
