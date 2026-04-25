@@ -31,6 +31,7 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <RootLayout />,
+    // Router configuration
     children: [
       {
         index: true,
