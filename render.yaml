@@ -3,8 +3,8 @@ services:
     name: thecourtyard-api
     runtime: node
     plan: starter
-    buildCommand: npm install
-    startCommand: npm start
+    buildCommand: cd server && npm install
+    startCommand: cd server && node src/index.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -46,4 +46,3 @@ services:
         value: your_cloudinary_key
       - key: CLOUDINARY_API_SECRET
         value: your_cloudinary_secret
-    root: server
