@@ -17,10 +17,5 @@ export const getApiBaseUrl = () => {
   return rawBaseUrl.replace(/\/+$/, '');
 };
 
-export const API_BASE_URL = getApiBaseUrl();
-
-// Debug log to verify correct URL is being used
-if (typeof window !== 'undefined') {
-  console.log('[API Config] VITE_API_BASE_URL env:', import.meta.env.VITE_API_BASE_URL);
-  console.log('[API Config] Resolved API_BASE_URL:', API_BASE_URL);
-}
+// Evaluate at runtime, not build time
+export const getAPI_BASE_URL = () => getApiBaseUrl();

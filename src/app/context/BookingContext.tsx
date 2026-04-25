@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { db, getCurrentUserToken, auth } from '../lib/firebaseClient';
+import { getAPI_BASE_URL } from '../lib/apiConfig';
 import { onAuthStateChanged } from 'firebase/auth';
 
 /**
@@ -134,13 +135,6 @@ interface BookingContextType {
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
 
-const viteEnv = import.meta as ImportMeta & { env?: Record<string, string | undefined> };
-const RAW_API_BASE_URL = viteEnv.env?.VITE_API_BASE_URL || '/api';
-const API_BASE_URL =
-  typeof window !== 'undefined' && window.location.hostname.includes('localhost')
-    ? '/api'
-    : RAW_API_BASE_URL;
-
 const parseApiPayload = async (response: Response) => {
   const contentType = response.headers.get('content-type') || '';
 
@@ -256,8 +250,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       const headers = { Authorization: `Bearer ${accessToken}` };
 
       const [bookingsResponse, subscriptionsResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/bookings`, { headers }),
-        fetch(`${API_BASE_URL}/subscriptions`, { headers }),
+        fetch(`${getAPI_BASE_URL()}/bookings`, { headers }),
+        fetch(`${getAPI_BASE_URL()}/subscriptions`, { headers }),
       ]);
 
       if (bookingsResponse.ok) {
@@ -277,7 +271,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/settings`);
+      const response = await fetch(`${getAPI_BASE_URL()}/settings`);
       if (!response.ok) {
         return;
       }
@@ -425,7 +419,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
 
     const accessToken = await getAccessToken();
-    const endpoint = options?.asAdmin ? `${API_BASE_URL}/admin/bookings` : `${API_BASE_URL}/bookings`;
+    const endpoint = options?.asAdmin ? `${getAPI_BASE_URL()}/admin/bookings` : `${getAPI_BASE_URL()}/bookings`;
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -457,7 +451,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
 
     const accessToken = await getAccessToken();
-    const endpoint = options?.asAdmin ? `${API_BASE_URL}/admin/subscriptions` : `${API_BASE_URL}/subscriptions`;
+    const endpoint = options?.asAdmin ? `${getAPI_BASE_URL()}/admin/subscriptions` : `${getAPI_BASE_URL()}/subscriptions`;
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -484,8 +478,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const cancelBooking = async (bookingId: string, options?: { asAdmin?: boolean }) => {
     const accessToken = await getAccessToken();
     const endpoint = options?.asAdmin
-      ? `${API_BASE_URL}/admin/bookings/${bookingId}`
-      : `${API_BASE_URL}/bookings/${bookingId}`;
+      ? `${getAPI_BASE_URL()}/admin/bookings/${bookingId}`
+      : `${getAPI_BASE_URL()}/bookings/${bookingId}`;
 
     const response = await fetch(endpoint, {
       method: 'DELETE',
@@ -506,8 +500,8 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const cancelSubscription = async (subscriptionId: string, options?: { asAdmin?: boolean }) => {
     const accessToken = await getAccessToken();
     const endpoint = options?.asAdmin
-      ? `${API_BASE_URL}/admin/subscriptions/${subscriptionId}`
-      : `${API_BASE_URL}/subscriptions/${subscriptionId}`;
+      ? `${getAPI_BASE_URL()}/admin/subscriptions/${subscriptionId}`
+      : `${getAPI_BASE_URL()}/subscriptions/${subscriptionId}`;
 
     const response = await fetch(endpoint, {
       method: 'DELETE',
