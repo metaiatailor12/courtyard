@@ -6,3 +6,6 @@ server/.env
 server/.env.local
 .DS_Store
 *.log
+
+.env.production
+.env.vercel
