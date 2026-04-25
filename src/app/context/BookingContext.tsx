@@ -141,12 +141,6 @@ const API_BASE_URL =
     ? '/api'
     : RAW_API_BASE_URL;
 
-const assertApiConfigured = () => {
-  if (!viteEnv.env?.VITE_API_BASE_URL && typeof window !== 'undefined' && !window.location.hostname.includes('localhost')) {
-    throw new Error('Backend API URL is not configured. Set VITE_API_BASE_URL in your environment variables.');
-  }
-};
-
 const parseApiPayload = async (response: Response) => {
   const contentType = response.headers.get('content-type') || '';
 
@@ -424,8 +418,6 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const createBooking = async (booking: Omit<Booking, 'id' | 'createdAt'>, options?: { asAdmin?: boolean }) => {
-    assertApiConfigured();
-
     const conflictingSlot = booking.slots.find(slot => isSlotBooked(slot.date, slot.court, slot.time));
 
     if (conflictingSlot) {
@@ -456,8 +448,6 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const createSubscription = async (subscription: Omit<Subscription, 'id' | 'createdAt'>, options?: { asAdmin?: boolean }) => {
-    assertApiConfigured();
-
     const normalizedTimeSlot = normalizeTimeSlot(subscription.timeSlot);
     const dates = getDateRange(subscription.startDate, subscription.endDate).filter(isWeekday);
     const conflictingDate = dates.find(date => isSlotBooked(date, subscription.court, normalizedTimeSlot));
