@@ -3,7 +3,7 @@ services:
     name: thecourtyard-api
     runtime: node
     plan: starter
-    buildCommand: cd server && npm install
+    buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: NODE_ENV
