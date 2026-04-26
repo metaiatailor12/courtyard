@@ -6,7 +6,6 @@
     "deploymentEnabled": true
   },
   "framework": "vite",
-  "buildCache": true,
   "rewrites": [
     {
       "source": "/(.*)",
