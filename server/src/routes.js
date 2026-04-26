@@ -226,8 +226,9 @@ router.get('/contact-messages-by-email', asyncHandler(async (req, res) => {
 	res.json({ messages });
 }));
 
-router.get('/reviews', asyncHandler(async (_req, res) => {
-	const reviews = await listReviews();
+router.get('/reviews', asyncHandler(async (req, res) => {
+	const reviews = await listReviews(req.query?.limit);
+	res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
 	res.json({ reviews });
 }));
 
@@ -238,6 +239,7 @@ router.post('/reviews', requireAuth, asyncHandler(async (req, res) => {
 
 router.get('/settings', asyncHandler(async (_req, res) => {
 	const settings = await getAppSettings();
+	res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
 	res.json({ settings });
 }));
 
@@ -246,8 +248,9 @@ router.patch('/settings', requireAuth, requireRole('admin'), asyncHandler(async 
 	res.json({ settings });
 }));
 
-router.get('/gallery', asyncHandler(async (_req, res) => {
-	const gallery = await getGalleryImages();
+router.get('/gallery', asyncHandler(async (req, res) => {
+	const gallery = await getGalleryImages(req.query?.limit);
+	res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
 	res.json({ gallery });
 }));
 

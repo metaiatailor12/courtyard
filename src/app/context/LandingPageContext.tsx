@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { getCurrentUserToken } from '../lib/firebaseClient';
 import { getAPI_BASE_URL } from '../lib/apiConfig';
 import { showErrorToast } from '../utils/notificationHelpers';
+import { fetchJsonWithCache, invalidateCachedJson } from '../lib/responseCache';
 
 export interface LandingPageContent {
   // Hero Section
@@ -121,21 +122,32 @@ const normalizeLandingContent = (content: Partial<LandingPageContent> | null | u
 
 export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [content, setContent] = useState<LandingPageContent>(EMPTY_LANDING_CONTENT);
+  const CACHE_KEY = 'tcy.landing.content.v1';
+  const CACHE_TTL_MS = 5 * 60 * 1000;
 
   useEffect(() => {
     let active = true;
 
-    const loadRemoteContent = async () => {
+    const loadRemoteContent = async (force = false) => {
       try {
-        const [settingsResponse, galleryResponse, reviewsResponse] = await Promise.all([
-          fetch(`${getAPI_BASE_URL()}/settings`),
-          fetch(`${getAPI_BASE_URL()}/gallery`),
-          fetch(`${getAPI_BASE_URL()}/reviews`),
+        const [settingsPayload, galleryPayload, reviewsPayload] = await Promise.all([
+          fetchJsonWithCache<{ settings?: { landing?: Partial<LandingPageContent> } }>(`${getAPI_BASE_URL()}/settings`, {
+            cacheKey: CACHE_KEY,
+            ttlMs: CACHE_TTL_MS,
+            force,
+          }),
+          fetchJsonWithCache<{ gallery?: LandingPageContent['gallery'] }>(`${getAPI_BASE_URL()}/gallery?limit=8`, {
+            cacheKey: `${CACHE_KEY}:gallery`,
+            ttlMs: CACHE_TTL_MS,
+            force,
+          }),
+          fetchJsonWithCache<{ reviews?: LandingPageContent['reviews'] }>(`${getAPI_BASE_URL()}/reviews?limit=6`, {
+            cacheKey: `${CACHE_KEY}:reviews`,
+            ttlMs: CACHE_TTL_MS,
+            force,
+          }),
         ]);
 
-        const settingsPayload = await settingsResponse.json();
-        const galleryPayload = await galleryResponse.json();
-        const reviewsPayload = await reviewsResponse.json().catch(() => null);
         const remoteContent = settingsPayload?.settings?.landing;
         const remoteGallery = Array.isArray(galleryPayload?.gallery) ? galleryPayload.gallery : [];
         const remoteReviews = Array.isArray(reviewsPayload?.reviews) ? reviewsPayload.reviews : [];
@@ -157,10 +169,17 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
     void loadRemoteContent();
 
     const handleSettingsUpdated = () => {
-      void loadRemoteContent();
+      invalidateCachedJson(CACHE_KEY);
+      invalidateCachedJson(`${CACHE_KEY}:gallery`);
+      invalidateCachedJson(`${CACHE_KEY}:reviews`);
+      void loadRemoteContent(true);
     };
 
     const pollTimer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+
       void loadRemoteContent();
     }, 30000);
 

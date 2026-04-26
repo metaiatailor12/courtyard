@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { db, getCurrentUserToken, auth } from '../lib/firebaseClient';
 import { getAPI_BASE_URL } from '../lib/apiConfig';
 import { onAuthStateChanged } from 'firebase/auth';
+import { fetchJsonWithCache, invalidateCachedJson } from '../lib/responseCache';
 
 /**
  * Calculate the effective booking status based on current date/time
@@ -172,6 +173,9 @@ const DEFAULT_APP_SETTINGS = {
   landing: {},
 };
 
+const SETTINGS_CACHE_KEY = 'tcy.api.settings.v1';
+const SETTINGS_CACHE_TTL_MS = 5 * 60 * 1000;
+
 const toDateKey = (date: Date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -274,12 +278,20 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch(`${getAPI_BASE_URL()}/settings`);
-      if (!response.ok) {
+      const payload = await fetchJsonWithCache<{ settings?: {
+        pricing?: typeof DEFAULT_APP_SETTINGS.pricing;
+        courts?: string[];
+        operatingHours?: typeof DEFAULT_APP_SETTINGS.operatingHours;
+        landing?: typeof DEFAULT_APP_SETTINGS.landing;
+      } }>(`${getAPI_BASE_URL()}/settings`, {
+        cacheKey: SETTINGS_CACHE_KEY,
+        ttlMs: SETTINGS_CACHE_TTL_MS,
+      });
+
+      if (!payload) {
         return;
       }
 
-      const payload = await response.json();
       const settings = payload?.settings;
 
       if (!settings) {
@@ -309,15 +321,19 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         return;
       }
 
-      void fetchSettings();
       await fetchData();
     };
 
+    void fetchSettings();
     void syncBookings();
 
     const pollTimer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') {
+        return;
+      }
+
       void syncBookings();
-    }, 20000);
+    }, 120000);
 
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!active) {
@@ -327,6 +343,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       if (!user) {
         setBookings([]);
         setSubscriptions([]);
+        invalidateCachedJson(SETTINGS_CACHE_KEY);
         void fetchSettings();
         return;
       }
@@ -341,6 +358,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
 
     const handleSettingsUpdated = () => {
+      invalidateCachedJson(SETTINGS_CACHE_KEY);
       void fetchSettings();
     };
 

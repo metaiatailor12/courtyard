@@ -223,12 +223,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLoading(false);
       }
 
-      // Load full profile in background
-      void buildUserFromFirebase(firebaseUser as any).then((enrichedUser) => {
-        if (active && enrichedUser) {
-          setUser(enrichedUser);
-        }
-      });
     });
 
     return () => {
@@ -255,14 +249,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (role === 'admin' && nextUser.role !== 'admin') {
-        const verifiedAdminUser = result.user ? await buildUserFromFirebase(result.user as any) : null;
-        if (!verifiedAdminUser || verifiedAdminUser.role !== 'admin') {
-          await signOut(auth);
-          throw new Error('Admin access required for this portal');
-        }
-
-        setUser(verifiedAdminUser);
-        return;
+        await signOut(auth);
+        throw new Error('Admin access required for this portal');
       }
 
       // Check if email verification is required for users
@@ -273,12 +261,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       setUser(nextUser);
 
-      // Load full profile in background
-      void buildUserFromFirebase(result.user as any, role).then((enrichedUser) => {
-        if (enrichedUser) {
-          setUser(enrichedUser);
-        }
-      });
     } catch (error: any) {
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
         throw new Error('Invalid email or password');

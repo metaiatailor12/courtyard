@@ -147,6 +147,64 @@ const DEFAULT_SITE_ASSETS = {
   aboutImage: DEFAULT_LANDING.aboutImage,
 };
 
+function isFirestoreQuotaExceeded(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const details = String(error?.details || '').toLowerCase();
+  const code = Number(error?.code);
+
+  return (
+    code === 8
+    || message.includes('resource_exhausted')
+    || message.includes('quota exceeded')
+    || details.includes('quota exceeded')
+  );
+}
+
+function getFallbackSettings() {
+  const now = new Date().toISOString();
+
+  return {
+    key: 'default',
+    pricing: DEFAULT_SETTINGS.pricing,
+    courts: DEFAULT_SETTINGS.courts,
+    operatingHours: DEFAULT_SETTINGS.operatingHours,
+    landing: normalizeLandingContent({
+      ...DEFAULT_LANDING,
+      ...DEFAULT_SITE_ASSETS,
+    }),
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function getFallbackGallery() {
+  return DEFAULT_LANDING.gallery.map((item, index) => ({
+    id: item.id || `gallery-${index + 1}`,
+    url: String(item.url || '').trim(),
+    caption: String(item.caption || '').trim(),
+    sortOrder: index,
+  })).filter(item => item.url);
+}
+
+function getFallbackReviews() {
+  const now = new Date().toISOString();
+
+  return DEFAULT_LANDING.reviews.map((item) => ({
+    id: item.id,
+    userId: null,
+    name: item.name,
+    email: '',
+    rating: Number(item.rating || 0),
+    comment: String(item.comment || '').trim(),
+    date: String(item.date || now.slice(0, 10)),
+    adminReply: null,
+    adminReplyBy: null,
+    adminReplyAt: null,
+    createdAt: now,
+    updatedAt: now,
+  })).filter((review) => review.rating >= 1 && review.rating <= 5 && review.comment);
+}
+
 function sanitizeDocumentId(value, fallback) {
   const raw = String(value || '').trim();
   const cleaned = raw.replace(/[\\/#?\[\]]/g, '-').slice(0, 120);
@@ -196,18 +254,6 @@ function normalizeSiteAssets(assets = {}) {
 async function ensureSiteAssetsDoc() {
   const db = getDb();
   const ref = db.collection(SITE_ASSETS_COLLECTION).doc('default');
-  const doc = await ref.get();
-
-  if (doc.exists) {
-    return doc;
-  }
-
-  await ref.set({
-    ...DEFAULT_SITE_ASSETS,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-
   return ref.get();
 }
 
@@ -228,33 +274,30 @@ function mapSettings(doc) {
 async function ensureSettingsDoc() {
   const db = getDb();
   const ref = db.collection('settings').doc('default');
-  const doc = await ref.get();
-
-  if (doc.exists) {
-    return doc;
-  }
-
-  await ref.set({
-    ...DEFAULT_SETTINGS,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
-
   return ref.get();
 }
 
 async function getAppSettings() {
-  const [settingsDoc, assetsDoc] = await Promise.all([ensureSettingsDoc(), ensureSiteAssetsDoc()]);
-  const settings = mapSettings(settingsDoc);
-  const assets = normalizeSiteAssets(assetsDoc.data() || {});
+  try {
+    const [settingsDoc, assetsDoc] = await Promise.all([ensureSettingsDoc(), ensureSiteAssetsDoc()]);
+    const settings = mapSettings(settingsDoc);
+    const assets = normalizeSiteAssets(assetsDoc.data() || {});
 
-  return {
-    ...settings,
-    landing: normalizeLandingContent({
-      ...settings.landing,
-      ...assets,
-    }),
-  };
+    return {
+      ...settings,
+      landing: normalizeLandingContent({
+        ...settings.landing,
+        ...assets,
+      }),
+    };
+  } catch (error) {
+    if (!isFirestoreQuotaExceeded(error)) {
+      throw error;
+    }
+
+    console.warn('[firestore] Quota exceeded while loading settings, using fallback defaults');
+    return getFallbackSettings();
+  }
 }
 
 async function updateAppSettings(payload) {
@@ -302,50 +345,37 @@ async function updateAppSettings(payload) {
   };
 }
 
-async function getGalleryImages() {
-  const db = getDb();
-  const collection = db.collection(GALLERY_COLLECTION);
-  let snapshot = await collection.orderBy('sortOrder', 'asc').get();
+async function getGalleryImages(limit) {
+  try {
+    const db = getDb();
+    const collection = db.collection(GALLERY_COLLECTION);
+    const normalizedLimit = Number.parseInt(String(limit || ''), 10);
+    const query = Number.isFinite(normalizedLimit) && normalizedLimit > 0
+      ? collection.orderBy('sortOrder', 'asc').limit(normalizedLimit)
+      : collection.orderBy('sortOrder', 'asc');
+    const snapshot = await query.get();
 
-  if (snapshot.empty) {
-    const settingsDoc = await ensureSettingsDoc();
-    const settingsData = settingsDoc.data() || {};
-    const seedGallery = Array.isArray(settingsData.landing?.gallery) && settingsData.landing.gallery.length
-      ? settingsData.landing.gallery
-      : Array.isArray(settingsData.galleryItems) && settingsData.galleryItems.length
-        ? settingsData.galleryItems
-        : Array.isArray(settingsData.galleryUrls) && settingsData.galleryUrls.length
-          ? settingsData.galleryUrls.map((url, index) => ({ id: String(index + 1), url, caption: `Court ${index + 1}` }))
-          : [];
-
-    if (seedGallery.length) {
-      const batch = db.batch();
-      seedGallery.forEach((item, index) => {
-        const id = String(item?.id || `${Date.now()}-${index}`);
-        batch.set(collection.doc(id), {
-          id,
-          url: String(item?.url || '').trim(),
-          caption: String(item?.caption || `Court ${index + 1}`).trim(),
-          sortOrder: index,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        });
-      });
-
-      await batch.commit();
-      snapshot = await collection.orderBy('sortOrder', 'asc').get();
+    if (snapshot.empty) {
+      return getFallbackGallery();
     }
-  }
 
-  return snapshot.docs.map((doc) => {
-    const data = doc.data() || {};
-    return {
-      id: doc.id,
-      url: String(data.url || '').trim(),
-      caption: String(data.caption || '').trim(),
-      sortOrder: Number(data.sortOrder || 0),
-    };
-  }).filter(item => item.url);
+    return snapshot.docs.map((doc) => {
+      const data = doc.data() || {};
+      return {
+        id: doc.id,
+        url: String(data.url || '').trim(),
+        caption: String(data.caption || '').trim(),
+        sortOrder: Number(data.sortOrder || 0),
+      };
+    }).filter(item => item.url);
+  } catch (error) {
+    if (!isFirestoreQuotaExceeded(error)) {
+      throw error;
+    }
+
+    console.warn('[firestore] Quota exceeded while loading gallery, using fallback defaults');
+    return getFallbackGallery();
+  }
 }
 
 async function replaceGalleryImages(items) {
@@ -725,29 +755,39 @@ async function createBookingRecord({ userId, userName, userEmail, userPhone, cou
 
 async function listBookings(user, filters = {}) {
   const db = getDb();
-  const [bookingSnapshot, slotSnapshot] = await Promise.all([
-    db.collection('bookings').get(),
-    db.collection('booking_slots').get(),
-  ]);
+  let query = db.collection('bookings');
 
-  const slotRows = slotSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  const bookings = bookingSnapshot.docs.map(doc => mapBookingDoc(doc, slotRows));
+  if (user.role !== 'admin') {
+    query = query.where('userId', '==', user.sub);
+  }
 
-  const filtered = bookings.filter(booking => {
-    if (user.role !== 'admin' && booking.userId !== user.sub) {
-      return false;
-    }
+  if (filters.status) {
+    query = query.where('status', '==', filters.status);
+  }
 
-    if (filters.status && booking.status !== filters.status) {
-      return false;
-    }
+  if (filters.date) {
+    query = query.where('date', '==', toUtcDateKey(filters.date));
+  }
 
-    if (filters.date && booking.date !== toUtcDateKey(filters.date)) {
-      return false;
-    }
+  const bookingSnapshot = await query.get();
+  const bookingDocs = bookingSnapshot.docs;
 
-    return true;
-  });
+  if (!bookingDocs.length) {
+    return [];
+  }
+
+  const bookingIds = bookingDocs.map(doc => doc.id);
+  const slotRows = [];
+
+  // Firestore `in` queries have limited terms; fetch booking slots in chunks.
+  const chunkSize = 10;
+  for (let index = 0; index < bookingIds.length; index += chunkSize) {
+    const idChunk = bookingIds.slice(index, index + chunkSize);
+    const slotSnapshot = await db.collection('booking_slots').where('bookingId', 'in', idChunk).get();
+    slotRows.push(...slotSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+  }
+
+  const filtered = bookingDocs.map(doc => mapBookingDoc(doc, slotRows));
 
   return filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
@@ -876,23 +916,25 @@ async function createSubscriptionRecord({ userId, userName, userEmail, userPhone
 
 async function listSubscriptions(user, filters = {}) {
   const db = getDb();
-  const snapshot = await db.collection('subscriptions').get();
+  let query = db.collection('subscriptions');
+
+  if (user.role !== 'admin') {
+    query = query.where('userId', '==', user.sub);
+  }
+
+  if (filters.status) {
+    query = query.where('status', '==', filters.status);
+  }
+
+  if (filters.court) {
+    query = query.where('court', '==', Number(filters.court));
+  }
+
+  const snapshot = await query.get();
   const subscriptions = snapshot.docs.map(mapSubscriptionDoc);
 
   return subscriptions
     .filter(subscription => {
-      if (user.role !== 'admin' && subscription.userId !== user.sub) {
-        return false;
-      }
-
-      if (filters.status && subscription.status !== filters.status) {
-        return false;
-      }
-
-      if (filters.court && subscription.court !== Number(filters.court)) {
-        return false;
-      }
-
       return true;
     })
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -1166,14 +1208,27 @@ function mapReviewDoc(doc) {
   };
 }
 
-async function listReviews() {
-  const db = getDb();
-  const snapshot = await db.collection('reviews').get();
+async function listReviews(limit) {
+  try {
+    const db = getDb();
+    const normalizedLimit = Number.parseInt(String(limit || ''), 10);
+    const query = Number.isFinite(normalizedLimit) && normalizedLimit > 0
+      ? db.collection('reviews').orderBy('createdAt', 'desc').limit(normalizedLimit)
+      : db.collection('reviews').orderBy('createdAt', 'desc');
+    const snapshot = await query.get();
 
-  return snapshot.docs
-    .map(mapReviewDoc)
-    .filter((review) => review.rating >= 1 && review.rating <= 5 && review.comment)
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return snapshot.docs
+      .map(mapReviewDoc)
+      .filter((review) => review.rating >= 1 && review.rating <= 5 && review.comment)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  } catch (error) {
+    if (!isFirestoreQuotaExceeded(error)) {
+      throw error;
+    }
+
+    console.warn('[firestore] Quota exceeded while loading reviews, using fallback defaults');
+    return getFallbackReviews();
+  }
 }
 
 async function createReview(payload, authUser) {

@@ -34,9 +34,10 @@ async function requireAuth(req, res, next) {
     const db = getDb();
     const userRef = db.collection('users').doc(decoded.uid);
     const userDoc = await userRef.get();
+    let profile = userDoc.exists ? (userDoc.data() || {}) : null;
 
-    if (!userDoc.exists) {
-      await userRef.set({
+    if (!profile) {
+      profile = {
         name: decoded.name || decoded.email || 'User',
         email: decoded.email || '',
         emailVerified: decoded.email_verified === true,
@@ -44,10 +45,11 @@ async function requireAuth(req, res, next) {
         role: 'user',
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+      };
+
+      await userRef.set(profile);
     }
 
-    const profile = (await userRef.get()).data() || {};
     req.auth = {
       sub: decoded.uid,
       role: profile.role || 'user',
