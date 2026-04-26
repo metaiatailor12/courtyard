@@ -1328,6 +1328,28 @@ async function checkEmailVerification(email) {
   };
 }
 
+async function updateBooking(user, bookingId, updates = {}) {
+  const db = getDb();
+  const booking = await getBookingById(user, bookingId);
+  const bookingRef = db.collection('bookings').doc(booking.id);
+  const now = new Date();
+
+  const allowedUpdates = {};
+  if ('paymentStatus' in updates) {
+    allowedUpdates.paymentStatus = updates.paymentStatus;
+  }
+
+  if (Object.keys(allowedUpdates).length === 0) {
+    return booking;
+  }
+
+  allowedUpdates.updatedAt = now;
+
+  await bookingRef.update(allowedUpdates);
+
+  return { ...booking, ...allowedUpdates, updatedAt: now.toISOString() };
+}
+
 module.exports = {
   getAppSettings,
   updateAppSettings,
@@ -1338,6 +1360,7 @@ module.exports = {
   listBookings,
   getBookingById,
   cancelBooking,
+  updateBooking,
   createSubscriptionRecord,
   listSubscriptions,
   getSubscriptionById,

@@ -14,6 +14,7 @@ const {
 	createBookingRecord,
 	listBookings,
 	cancelBooking,
+	updateBooking,
 	createSubscriptionRecord,
 	listSubscriptions,
 	cancelSubscription,
@@ -32,7 +33,12 @@ const {
 	checkEmailVerification,
 } = require('./firestoreServices');
 const { uploadGalleryImage } = require('./cloudinary');
-const { sendVerificationEmail } = require('./emailService');
+const {
+	sendVerificationEmail,
+	sendBookingConfirmationEmail,
+	sendBookingCancellationEmail,
+	sendSubscriptionConfirmationEmail,
+} = require('./emailService');
 const { generateJWTVerificationToken, getTokenExpiryTime } = require('./tokenUtils');
 
 const router = express.Router();
@@ -63,7 +69,7 @@ router.get('/health', (_req, res) => {
 	res.json({ status: 'ok' });
 });
 
-router.post('/auth/verify-email-send', asyncHandler(async (req, res) => {
+async function sendEmailVerificationLink(req, res) {
 	const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
 	const name = typeof req.body?.name === 'string' ? req.body.name.trim() : 'User';
 	
@@ -99,7 +105,65 @@ router.post('/auth/verify-email-send', asyncHandler(async (req, res) => {
 		console.error('Failed to send verification email:', error);
 		throw new ApiError(500, 'Failed to send verification email. Please try again.');
 	}
-}));
+}
+
+router.post('/auth/verify-email-send', asyncHandler(sendEmailVerificationLink));
+router.post('/auth/resend-verification-email', asyncHandler(sendEmailVerificationLink));
+
+async function sendBookingConfirmationIfPossible(booking) {
+	const recipientEmail = typeof booking?.userEmail === 'string' ? booking.userEmail.trim().toLowerCase() : '';
+	if (!recipientEmail) {
+		return false;
+	}
+
+	try {
+		await sendBookingConfirmationEmail(recipientEmail, booking);
+		return true;
+	} catch (error) {
+		console.error('Booking was created, but confirmation email failed:', error);
+		return false;
+	}
+}
+
+async function sendBookingCancellationIfPossible(booking) {
+	const recipientEmail = typeof booking?.userEmail === 'string' ? booking.userEmail.trim().toLowerCase() : '';
+	if (!recipientEmail) {
+		return false;
+	}
+
+	try {
+		await sendBookingCancellationEmail(recipientEmail, booking);
+		return true;
+	} catch (error) {
+		console.error('Booking was cancelled, but cancellation email failed:', error);
+		return false;
+	}
+}
+
+function requireVerifiedUser(req) {
+	if (req.auth?.role === 'admin') {
+		return;
+	}
+
+	if (!req.auth?.emailVerified) {
+		throw new ApiError(403, 'Please verify your email before booking or subscribing.');
+	}
+}
+
+async function sendSubscriptionConfirmationIfPossible(subscription) {
+	const recipientEmail = typeof subscription?.userEmail === 'string' ? subscription.userEmail.trim().toLowerCase() : '';
+	if (!recipientEmail) {
+		return false;
+	}
+
+	try {
+		await sendSubscriptionConfirmationEmail(recipientEmail, subscription);
+		return true;
+	} catch (error) {
+		console.error('Subscription was created, but confirmation email failed:', error);
+		return false;
+	}
+}
 
 router.post('/auth/verify-email-confirm', asyncHandler(async (req, res) => {
 	const token = typeof req.body?.token === 'string' ? req.body.token.trim() : '';
@@ -216,6 +280,8 @@ router.get('/bookings', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 router.post('/bookings', requireAuth, asyncHandler(async (req, res) => {
+	requireVerifiedUser(req);
+
 	const booking = await createBookingRecord({
 		...req.body,
 		source: 'user-app',
@@ -224,16 +290,20 @@ router.post('/bookings', requireAuth, asyncHandler(async (req, res) => {
 		userEmail: req.body?.userEmail || req.auth.email,
 		userPhone: req.body?.userPhone || null,
 	});
+	const confirmationEmailSent = await sendBookingConfirmationIfPossible(booking);
 
-	res.status(201).json({ booking });
+	res.status(201).json({ booking: { ...booking, confirmationEmailSent } });
 }));
 
 router.delete('/bookings/:bookingId', requireAuth, asyncHandler(async (req, res) => {
 	const booking = await cancelBooking(req.auth, req.params.bookingId);
-	res.json({ booking });
+	const cancellationEmailSent = await sendBookingCancellationIfPossible(booking);
+	res.json({ booking: { ...booking, cancellationEmailSent } });
 }));
 
 router.post('/subscriptions', requireAuth, asyncHandler(async (req, res) => {
+	requireVerifiedUser(req);
+
 	const subscription = await createSubscriptionRecord({
 		...req.body,
 		userId: req.auth.sub,
@@ -241,8 +311,9 @@ router.post('/subscriptions', requireAuth, asyncHandler(async (req, res) => {
 		userEmail: req.body?.userEmail || req.auth.email,
 		userPhone: req.body?.userPhone || null,
 	});
+	const confirmationEmailSent = await sendSubscriptionConfirmationIfPossible(subscription);
 
-	res.status(201).json({ subscription });
+	res.status(201).json({ subscription: { ...subscription, confirmationEmailSent } });
 }));
 
 router.get('/subscriptions', requireAuth, asyncHandler(async (req, res) => {
@@ -300,12 +371,19 @@ router.post('/admin/bookings', requireAuth, requireRole('admin'), asyncHandler(a
 		userEmail: req.body?.userEmail || req.auth.email,
 		userPhone: req.body?.userPhone || null,
 	});
+	const confirmationEmailSent = await sendBookingConfirmationIfPossible(booking);
 
-	res.status(201).json({ booking });
+	res.status(201).json({ booking: { ...booking, confirmationEmailSent } });
 }));
 
 router.delete('/admin/bookings/:bookingId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
 	const booking = await cancelBooking(req.auth, req.params.bookingId);
+	const cancellationEmailSent = await sendBookingCancellationIfPossible(booking);
+	res.json({ booking: { ...booking, cancellationEmailSent } });
+}));
+
+router.patch('/admin/bookings/:bookingId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+	const booking = await updateBooking(req.auth, req.params.bookingId, req.body || {});
 	res.json({ booking });
 }));
 
@@ -317,8 +395,9 @@ router.post('/admin/subscriptions', requireAuth, requireRole('admin'), asyncHand
 		userEmail: req.body?.userEmail || req.auth.email,
 		userPhone: req.body?.userPhone || null,
 	});
+	const confirmationEmailSent = await sendSubscriptionConfirmationIfPossible(subscription);
 
-	res.status(201).json({ subscription });
+	res.status(201).json({ subscription: { ...subscription, confirmationEmailSent } });
 }));
 
 router.delete('/admin/subscriptions/:subscriptionId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {

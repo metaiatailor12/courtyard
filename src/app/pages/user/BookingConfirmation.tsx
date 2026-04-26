@@ -97,11 +97,13 @@ export const BookingConfirmation = () => {
             </div>
 
             {/* Notification Message */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 md:p-4 mb-4 md:mb-6">
+            <div className={`${latestBooking.confirmationEmailSent === false ? 'bg-amber-50 border-amber-200' : 'bg-blue-50 border-blue-200'} border rounded-xl p-3 md:p-4 mb-4 md:mb-6`}>
               <div className="flex items-start md:items-center gap-2 md:gap-3">
-                <Mail className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0 mt-0.5 md:mt-0" />
-                <p className="text-xs md:text-sm text-blue-800 text-left">
-                  A confirmation email has been sent to your registered email address
+                <Mail className={`w-4 h-4 md:w-5 md:h-5 ${latestBooking.confirmationEmailSent === false ? 'text-amber-600' : 'text-blue-600'} flex-shrink-0 mt-0.5 md:mt-0`} />
+                <p className={`text-xs md:text-sm ${latestBooking.confirmationEmailSent === false ? 'text-amber-800' : 'text-blue-800'} text-left`}>
+                  {latestBooking.confirmationEmailSent === false
+                    ? 'Your booking is saved, but we could not send the confirmation email. Please contact support if you need a copy.'
+                    : 'A confirmation email has been sent to your registered email address'}
                 </p>
               </div>
             </div>

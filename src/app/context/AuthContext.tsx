@@ -6,6 +6,7 @@ import {
   requiresEmailVerification,
   getCurrentUser,
 } from '../lib/firebaseClient';
+import { getAPI_BASE_URL } from '../lib/apiConfig';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -30,15 +31,18 @@ interface User {
   address?: string;
   role: 'user' | 'admin';
   emailVerified?: boolean;
+  photoUrl?: string;
 }
 
 interface AuthContextType {
   user: User | null;
+  loading: boolean;
   login: (email: string, password: string, role: 'user' | 'admin') => Promise<void>;
   register: (name: string, email: string, phone: string, password: string) => Promise<'signed-in' | 'verification-required'>;
   resendVerificationEmail: (email: string) => Promise<void>;
   requestPasswordReset: (email: string, role: 'user' | 'admin') => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
+  refreshCurrentUser: (roleHint?: 'user' | 'admin') => Promise<User | null>;
   loginWithGoogle: (role: 'user' | 'admin') => Promise<void>;
   completeOAuthCallback: (roleHint?: 'user' | 'admin') => Promise<{ user: User; verificationRequired: boolean } | null>;
   logout: () => void;
@@ -79,7 +83,21 @@ const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: 
   }
 };
 
+const sendBackendVerificationEmail = async (email: string, name?: string) => {
+  const response = await fetch(`${getAPI_BASE_URL()}/auth/verify-email-send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, name }),
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(payload?.error?.message || payload?.message || 'Failed to send verification email');
+  }
+};
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [loading, setLoading] = useState(Boolean(isFirebaseConfigured && auth));
   const [user, setUser] = useState<User | null>(() => {
     if (typeof window === 'undefined') {
       return null;
@@ -111,7 +129,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [user]);
 
   const buildUserFromFirebase = async (
-    firebaseUser: { uid: string; email?: string | null; phoneNumber?: string | null },
+    firebaseUser: { uid: string; email?: string | null; phoneNumber?: string | null; photoURL?: string | null; emailVerified?: boolean },
     roleHint?: 'user' | 'admin',
     options?: { skipProfileLookup?: boolean }
   ): Promise<User | null> => {
@@ -126,6 +144,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       role?: string;
       location?: string;
       address?: string;
+      photoUrl?: string;
     } | null = null;
 
     if (!options?.skipProfileLookup && db) {
@@ -154,7 +173,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       location: profile?.location || profile?.address || undefined,
       address: profile?.address || undefined,
       role: derivedRole,
-      emailVerified: profile?.emailVerified ?? false,
+      emailVerified: profile?.emailVerified === true || firebaseUser.emailVerified === true,
+      photoUrl: profile?.photoUrl || firebaseUser.photoURL || undefined,
     };
   };
 
@@ -168,11 +188,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return null;
     }
 
-    return buildUserFromFirebase(firebaseUser as any, roleHint, { skipProfileLookup: true });
+    return buildUserFromFirebase(firebaseUser as any, roleHint);
   };
 
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
+      setLoading(false);
       return;
     }
 
@@ -190,12 +211,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       if (!firebaseUser) {
         setUser(null);
+        setLoading(false);
         return;
       }
 
-      const nextUser = await buildUserFromFirebase(firebaseUser as any, undefined, { skipProfileLookup: true });
+      const nextUser = await buildUserFromFirebase(firebaseUser as any);
       if (active && nextUser) {
         setUser(nextUser);
+      }
+      if (active) {
+        setLoading(false);
       }
 
       // Load full profile in background
@@ -224,7 +249,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         'Login timed out. Please try again.'
       );
 
-      const nextUser = result.user ? await buildUserFromFirebase(result.user as any, role, { skipProfileLookup: true }) : null;
+      const nextUser = result.user ? await buildUserFromFirebase(result.user as any, role) : null;
       if (!nextUser) {
         throw new Error('Unable to load user profile');
       }
@@ -288,9 +313,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Send verification email if required
       if (requiresEmailVerification) {
         try {
-          await sendEmailVerification(newUser);
-        } catch {
-          // Email verification sending failed, but continue
+          await sendBackendVerificationEmail(normalizedEmail, name);
+        } catch (backendError) {
+          try {
+            await sendEmailVerification(newUser);
+          } catch {
+            throw backendError;
+          }
         }
         return 'verification-required';
       }
@@ -326,22 +355,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       throw new Error('Email is required');
     }
 
-    try {
-      const result = await signInWithEmailAndPassword(auth, normalizedEmail, 'temp');
-    } catch (error: any) {
-      // Expected to fail, we just need to set the current user for sendEmailVerification
-    }
-
-    const user = getCurrentUser();
-    if (user) {
-      try {
-        await sendEmailVerification(user);
-      } catch (error) {
-        throw error;
-      }
-    } else {
-      throw new Error('User not found');
-    }
+    await sendBackendVerificationEmail(normalizedEmail);
   };
 
   const requestPasswordReset = async (email: string, role: 'user' | 'admin') => {
@@ -390,6 +404,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const refreshCurrentUser = async (roleHint?: 'user' | 'admin') => {
+    const nextUser = await getUserFromFirebase(roleHint);
+    if (nextUser) {
+      setUser(nextUser);
+    }
+    return nextUser;
+  };
+
   const loginWithGoogle = async (role: 'user' | 'admin') => {
     if (!isFirebaseConfigured || !auth) {
       // Fallback to mock login if Firebase is not configured
@@ -404,7 +426,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
+    provider.setCustomParameters({ 
+      prompt: 'consent' // Force consent screen to show all available permissions
+    });
+    // Request scopes that work on localhost without verification
+    provider.addScope('profile');
+    provider.addScope('email');
+    provider.addScope('https://www.googleapis.com/auth/userinfo.profile');
 
     try {
       const result = await signInWithPopup(auth, provider);
@@ -413,16 +441,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Firestore is not configured');
       }
 
-      // Create or update user profile
+      // Create or update user profile with Google data
       const userDoc = await getDoc(doc(db, 'users', result.user.uid));
+      const profileData: any = {
+        name: result.user.displayName || result.user.email,
+        email: result.user.email,
+        role: 'user',
+        updatedAt: new Date(),
+      };
+
+      // Only add fields that have values (not undefined or null)
+      if (result.user.phoneNumber) {
+        profileData.phone = result.user.phoneNumber;
+      }
+      if (result.user.photoURL) {
+        profileData.photoUrl = result.user.photoURL;
+      }
+
       if (!userDoc.exists()) {
         await setDoc(doc(db, 'users', result.user.uid), {
-          name: result.user.displayName || result.user.email,
-          email: result.user.email,
-          phone: result.user.phoneNumber,
-          role: 'user',
+          ...profileData,
           createdAt: new Date(),
-          updatedAt: new Date(),
+        });
+      } else {
+        // Update existing profile with Google data
+        const existingData = userDoc.data();
+        await setDoc(doc(db, 'users', result.user.uid), {
+          ...existingData,
+          ...profileData,
         });
       }
 
@@ -496,11 +542,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     <AuthContext.Provider
       value={{
         user,
+        loading,
         login,
         register,
         resendVerificationEmail,
         requestPasswordReset,
         updatePassword,
+        refreshCurrentUser,
         loginWithGoogle,
         completeOAuthCallback,
         logout,

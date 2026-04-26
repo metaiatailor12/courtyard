@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { Search, Calendar, Edit, Trash2, Eye, Repeat, X, Clock, User, MapPin, Phone, Plus } from 'lucide-react';
+import { Search, Calendar, Edit, Trash2, Eye, Repeat, X, Clock, User, MapPin, Phone, Plus, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { useBooking, getEffectiveBookingStatus } from '../../context/BookingContext';
+import { showSuccessToast, showErrorToast } from '../../utils/notificationHelpers';
 import { CreateBookingModal } from './CreateBookingModal';
 import { CreateSubscriptionModal } from './CreateSubscriptionModal';
 
 export const AdminBookings = () => {
-  const { bookings, subscriptions, cancelBooking, cancelSubscription, createBooking, createSubscription } = useBooking();
+  const { bookings, subscriptions, cancelBooking, cancelSubscription, createBooking, createSubscription, updateBooking } = useBooking();
   const [activeTab, setActiveTab] = useState<'bookings' | 'subscriptions'>('bookings');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
@@ -19,6 +20,7 @@ export const AdminBookings = () => {
   const [editModal, setEditModal] = useState<any>(null);
   const [createBookingModal, setCreateBookingModal] = useState(false);
   const [createSubscriptionModal, setCreateSubscriptionModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ type: 'booking' | 'subscription', id: string } | null>(null);
 
   const filteredBookings = bookings.filter(booking => {
     const effectiveStatus = getEffectiveBookingStatus(booking);
@@ -37,24 +39,39 @@ export const AdminBookings = () => {
   });
 
   const handleCancelBooking = async (bookingId: string) => {
-    if (window.confirm('Are you sure you want to cancel this booking?')) {
-      try {
-        await cancelBooking(bookingId, { asAdmin: true });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unable to cancel booking';
-        alert(message);
-      }
-    }
+    setConfirmDialog({ type: 'booking', id: bookingId });
   };
 
   const handleCancelSubscription = async (subId: string) => {
-    if (window.confirm('Are you sure you want to cancel this subscription?')) {
-      try {
-        await cancelSubscription(subId, { asAdmin: true });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unable to cancel subscription';
-        alert(message);
+    setConfirmDialog({ type: 'subscription', id: subId });
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!confirmDialog) return;
+
+    try {
+      if (confirmDialog.type === 'booking') {
+        await cancelBooking(confirmDialog.id, { asAdmin: true });
+        showSuccessToast('Success', 'Booking cancelled successfully!');
+      } else {
+        await cancelSubscription(confirmDialog.id, { asAdmin: true });
+        showSuccessToast('Success', 'Subscription cancelled successfully!');
       }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to cancel';
+      showErrorToast('Error', message);
+    } finally {
+      setConfirmDialog(null);
+    }
+  };
+
+  const handleMarkPaid = async (bookingId: string) => {
+    try {
+      await updateBooking(bookingId, { paymentStatus: 'paid' });
+      showSuccessToast('Payment Updated', 'Booking marked as paid successfully!');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to update payment status';
+      showErrorToast('Update Failed', message);
     }
   };
 
@@ -104,10 +121,10 @@ export const AdminBookings = () => {
         userPhone: data.userPhone,
       }, { asAdmin: true });
 
-      alert('Onsite booking created successfully!');
+      showSuccessToast('Success', 'Onsite booking created successfully!');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to create booking';
-      alert(message);
+      showErrorToast('Error', message);
     }
   };
 
@@ -129,10 +146,10 @@ export const AdminBookings = () => {
         userPhone: data.userPhone,
       }, { asAdmin: true });
 
-      alert('Onsite subscription created successfully!');
+      showSuccessToast('Success', 'Onsite subscription created successfully!');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to create subscription';
-      alert(message);
+      showErrorToast('Error', message);
     }
   };
 
@@ -535,6 +552,23 @@ export const AdminBookings = () => {
                         <p className="text-sm text-gray-600 mb-1">Total Amount</p>
                         <p className="font-semibold text-[#808000]">₹{viewDetailsModal.data.totalAmount}</p>
                       </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Payment Method</p>
+                        <p className="font-semibold text-gray-800 capitalize">{viewDetailsModal.data.paymentMethod || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Payment Status</p>
+                        <div className="flex items-center gap-2">
+                          {viewDetailsModal.data.paymentStatus === 'paid' ? (
+                            <>
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Paid</span>
+                            </>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 mb-2">Time Slots</p>
@@ -546,6 +580,19 @@ export const AdminBookings = () => {
                         ))}
                       </div>
                     </div>
+                    {viewDetailsModal.data.paymentMethod === 'onsite' && viewDetailsModal.data.paymentStatus === 'pending' && viewDetailsModal.data.status !== 'cancelled' && (
+                      <div className="mt-6 pt-6 border-t border-gray-200">
+                        <button
+                          onClick={() => {
+                            handleMarkPaid(viewDetailsModal.data.id);
+                            setViewDetailsModal(null);
+                          }}
+                          className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                        >
+                          Mark Payment Successful
+                        </button>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>
@@ -602,8 +649,25 @@ export const AdminBookings = () => {
                         {getStatusBadge(viewDetailsModal.data.status)}
                       </div>
                       <div>
-                        <p className="text-sm text-gray-600 mb-1">Total Amount</p>
+                        <p className="text-sm text-gray-600 mb-1">Amount</p>
                         <p className="font-semibold text-[#808000]">₹{viewDetailsModal.data.amount}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Payment Method</p>
+                        <p className="font-semibold text-gray-800 capitalize">{viewDetailsModal.data.paymentMethod || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600 mb-1">Payment Status</p>
+                        <div className="flex items-center gap-2">
+                          {viewDetailsModal.data.paymentStatus === 'paid' ? (
+                            <>
+                              <CheckCircle className="w-4 h-4 text-green-600" />
+                              <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Paid</span>
+                            </>
+                          ) : (
+                            <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </>
@@ -676,6 +740,32 @@ export const AdminBookings = () => {
           onClose={() => setCreateSubscriptionModal(false)}
           onCreate={handleCreateSubscription}
         />
+
+        {/* Confirmation Dialog */}
+        {confirmDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-sm w-full p-6">
+              <h3 className="text-xl font-bold text-gray-800 mb-2">Confirm Cancellation</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to cancel this {confirmDialog.type}? This action cannot be undone.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setConfirmDialog(null)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmCancel}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium"
+                >
+                  Confirm Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

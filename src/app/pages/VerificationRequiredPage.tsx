@@ -1,15 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { Navbar } from '../components/Navbar';
 import { Mail, AlertCircle, Loader, ArrowRight } from 'lucide-react';
 import { showSuccessToast, showErrorToast } from '../utils/notificationHelpers';
-
-const RAW_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
-const API_BASE_URL =
-  typeof window !== 'undefined' && window.location.hostname.includes('localhost')
-    ? '/api'
-    : RAW_API_BASE_URL;
+import { getAPI_BASE_URL } from '../lib/apiConfig';
 
 interface VerificationRequiredPageProps {
   email?: string;
@@ -24,7 +19,7 @@ export const VerificationRequiredPage = ({ email: initialEmail = '', onResendSuc
   const [error, setError] = useState('');
 
   // Countdown timer for resend button
-  React.useEffect(() => {
+  useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
       return () => clearTimeout(timer);
@@ -38,7 +33,7 @@ export const VerificationRequiredPage = ({ email: initialEmail = '', onResendSuc
     setResending(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/resend-verification-email`, {
+      const response = await fetch(`${getAPI_BASE_URL()}/auth/resend-verification-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -47,7 +42,7 @@ export const VerificationRequiredPage = ({ email: initialEmail = '', onResendSuc
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to resend verification email');
+        throw new Error(data?.error?.message || data?.message || 'Failed to resend verification email');
       }
 
       setResendCooldown(60);

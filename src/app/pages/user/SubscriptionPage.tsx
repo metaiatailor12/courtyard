@@ -8,6 +8,7 @@ import { Button } from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useBooking } from '../../context/BookingContext';
 import { Input } from '../../components/Input';
+import { showSuccessToast, showErrorToast } from '../../utils/notificationHelpers';
 
 export const SubscriptionPage = () => {
   const navigate = useNavigate();
@@ -118,12 +119,12 @@ export const SubscriptionPage = () => {
     }
 
     if (!startDate || !selectedCourt || !selectedTimeSlot) {
-      alert('Please select a start date, court, and time slot before subscribing.');
+      showErrorToast('Incomplete Selection', 'Please select a start date, court, and time slot before subscribing.');
       return;
     }
 
     if (conflictingDates.length > 0) {
-      alert(`This court and time slot is already booked on ${conflictingDates.length} date(s). Please choose another slot.`);
+      showErrorToast('Slot Unavailable', `This court and time slot is already booked on ${conflictingDates.length} date(s). Please choose another slot.`);
       return;
     }
 
@@ -154,11 +155,18 @@ export const SubscriptionPage = () => {
 
       console.log('Subscription created:', subscription);
 
-      alert(method === 'onsite' ? 'Subscription reserved successfully! Please pay at the venue.' : 'Subscription activated successfully!');
+      if (method === 'onsite') {
+        showSuccessToast('Subscription Reserved', 'Please pay at the venue.');
+      } else {
+        showSuccessToast('Subscription Activated', 'Your subscription is now active!');
+      }
+      if (subscription.confirmationEmailSent === false) {
+        showErrorToast('Email Not Sent', 'Your subscription was saved, but the confirmation email could not be sent.');
+      }
       navigate('/user/profile');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Subscription could not be completed';
-      alert(message);
+      showErrorToast('Subscription Failed', message);
     } finally {
       setProcessing(false);
     }

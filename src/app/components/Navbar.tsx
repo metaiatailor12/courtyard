@@ -20,6 +20,7 @@ export const Navbar = () => {
 
   const isAdmin = user?.role === 'admin';
   const isUser = user?.role === 'user';
+  const isVerifiedUser = isUser && user?.emailVerified === true;
 
   const isActivePath = (path: string) => location.pathname === path;
 
@@ -27,7 +28,7 @@ export const Navbar = () => {
     <nav className="bg-white/80 backdrop-blur-sm border-b border-gray-100 sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link to={user ? (isAdmin ? '/admin/dashboard' : '/user/home') : '/'} className="flex items-center gap-2">
+          <Link to={user ? (isAdmin ? '/admin/dashboard' : isVerifiedUser ? '/user/home' : '/') : '/'} className="flex items-center gap-2">
             <img
               src={courtyardLogo}
               alt="TheCourtyard logo"
@@ -44,9 +45,9 @@ export const Navbar = () => {
             {!isAdmin && (
               <>
                 <Link
-                  to={user ? '/user/home' : '/'}
+                  to={isVerifiedUser ? '/user/home' : '/'}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActivePath('/') || isActivePath('/user/home') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    isActivePath('/') || (isVerifiedUser && isActivePath('/user/home')) ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
                   }`}
                 >
                   Home
@@ -59,16 +60,16 @@ export const Navbar = () => {
                 >
                   Contact
                 </Link>
-                <Link
-                  to="/user/booking"
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                    isActivePath('/user/booking') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  Book Court
-                </Link>
-                {isUser && (
+                {isVerifiedUser && (
                   <>
+                    <Link
+                      to="/user/booking"
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                        isActivePath('/user/booking') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      Book Court
+                    </Link>
                     <Link
                       to="/user/subscription"
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -154,12 +155,21 @@ export const Navbar = () => {
             )}
             
             {/* Notification Center for Users */}
-            {!isAdmin && isUser && <NotificationCenter />}
+            {!isAdmin && isVerifiedUser && <NotificationCenter />}
+            {!isAdmin && isUser && !isVerifiedUser && (
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors hover:bg-red-50 text-red-600 font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                Logout
+              </button>
+            )}
           </div>
 
           {/* Right side - Mobile Menu Button and Notification Center */}
           <div className="flex items-center gap-2 lg:hidden">
-            {user && <NotificationCenter />}
+            {isAdmin || isVerifiedUser ? <NotificationCenter /> : null}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 rounded-lg hover:bg-gray-100"
@@ -176,10 +186,10 @@ export const Navbar = () => {
               {!isAdmin && (
                 <>
                   <Link
-                    to={user ? '/user/home' : '/'}
+                    to={isVerifiedUser ? '/user/home' : '/'}
                     onClick={() => setMobileMenuOpen(false)}
                     className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                      isActivePath('/') || isActivePath('/user/home') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      isActivePath('/') || (isVerifiedUser && isActivePath('/user/home')) ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
                     }`}
                   >
                     Home
@@ -194,18 +204,18 @@ export const Navbar = () => {
                     <Phone className="w-4 h-4" />
                     Contact
                   </Link>
-                  <Link
-                    to="/user/booking"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                      isActivePath('/user/booking') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
-                    }`}
-                  >
-                    <Calendar className="w-4 h-4" />
-                    Book Court
-                  </Link>
-                  {isUser && (
+                  {isVerifiedUser && (
                     <>
+                      <Link
+                        to="/user/booking"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                          isActivePath('/user/booking') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        <Calendar className="w-4 h-4" />
+                        Book Court
+                      </Link>
                       <Link
                         to="/user/subscription"
                         onClick={() => setMobileMenuOpen(false)}

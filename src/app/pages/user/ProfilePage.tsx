@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Calendar, CreditCard, Mail, Phone as PhoneIcon, CheckCircle, XCircle, Phone, Mail as MailIcon, LogOut } from 'lucide-react';
+import { User, Calendar, CreditCard, Mail, Phone as PhoneIcon, CheckCircle, XCircle, Phone, Mail as MailIcon, LogOut, Edit2, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router';
 import { Navbar } from '../../components/Navbar';
@@ -7,12 +7,19 @@ import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useBooking, getEffectiveBookingStatus } from '../../context/BookingContext';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebaseClient';
+import { showSuccessToast, showErrorToast } from '../../utils/notificationHelpers';
 
 export const ProfilePage = () => {
   const { user, logout } = useAuth();
   const { bookings, subscriptions, appSettings } = useBooking();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'bookings' | 'subscriptions'>('bookings');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedPhone, setEditedPhone] = useState(user?.phone || '');
+  const [editedLocation, setEditedLocation] = useState(user?.location || user?.address || '');
+  const [isSaving, setIsSaving] = useState(false);
   
   const supportPhone = typeof appSettings.landing?.venuePhone === 'string' ? appSettings.landing.venuePhone : '';
   const supportEmail = typeof appSettings.landing?.venueEmail === 'string' ? appSettings.landing.venueEmail : '';
@@ -30,6 +37,39 @@ export const ProfilePage = () => {
     navigate('/');
   };
 
+  const handleSaveProfile = async () => {
+    if (!user || !db) {
+      showErrorToast('Error', 'Unable to save profile');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await setDoc(doc(db, 'users', user.id), {
+        name: user.name,
+        email: user.email,
+        phone: editedPhone || undefined,
+        location: editedLocation || undefined,
+        role: user.role,
+        updatedAt: new Date(),
+      }, { merge: true });
+
+      // Update local user state with new phone and location
+      Object.assign(user, {
+        phone: editedPhone || undefined,
+        location: editedLocation || undefined,
+      });
+
+      showSuccessToast('Success', 'Profile updated successfully');
+      setIsEditing(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update profile';
+      showErrorToast('Error', message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -44,37 +84,79 @@ export const ProfilePage = () => {
           {/* User Info Card */}
           <GlassCard className="p-4 md:p-6 lg:col-span-1 h-fit">
             <div className="flex flex-col items-center text-center">
-              <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-yellow-700 to-yellow-600 rounded-full flex items-center justify-center mb-4">
-                <User className="w-10 h-10 md:w-12 md:h-12 text-white" />
-              </div>
+              {user?.photoUrl ? (
+                <img
+                  src={user.photoUrl}
+                  alt={user.name}
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-full mb-4 object-cover border-4 border-yellow-600"
+                />
+              ) : (
+                <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-yellow-700 to-yellow-600 rounded-full flex items-center justify-center mb-4">
+                  <User className="w-10 h-10 md:w-12 md:h-12 text-white" />
+                </div>
+              )}
               <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-1">{user?.name || 'User Name'}</h2>
               <p className="text-sm text-gray-600 mb-4 capitalize">{user?.role || 'User'} Account</p>
 
-              <div className="w-full space-y-3 text-left">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Mail className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs text-gray-600">Email</p>
-                    <p className="text-sm font-medium text-gray-800 truncate">{user?.email || 'user@example.com'}</p>
+              {!isEditing ? (
+                <div className="w-full space-y-3 text-left">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <Mail className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-gray-600">Email</p>
+                      <p className="text-sm font-medium text-gray-800 truncate">{user?.email || 'user@example.com'}</p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <Phone className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-gray-600">Phone</p>
-                    <p className="text-sm font-medium text-gray-800">{user?.phone || 'Not provided'}</p>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <Phone className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-600">Phone</p>
+                      <p className="text-sm font-medium text-gray-800">{user?.phone || 'Not provided'}</p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <MailIcon className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                  <div>
-                    <p className="text-xs text-gray-600">Location</p>
-                    <p className="text-sm font-medium text-gray-800">{user?.location || user?.address || 'Not provided'}</p>
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <MailIcon className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-600">Location</p>
+                      <p className="text-sm font-medium text-gray-800">{user?.location || user?.address || 'Not provided'}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="w-full space-y-3 text-left">
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <Mail className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-gray-600">Email</p>
+                      <p className="text-sm font-medium text-gray-800 truncate">{user?.email || 'user@example.com'}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Phone</label>
+                    <input
+                      type="tel"
+                      value={editedPhone}
+                      onChange={(e) => setEditedPhone(e.target.value)}
+                      placeholder="Enter your phone number"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-gray-600 block mb-1">Location</label>
+                    <input
+                      type="text"
+                      value={editedLocation}
+                      onChange={(e) => setEditedLocation(e.target.value)}
+                      placeholder="Enter your location"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-600 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="w-full mt-6 pt-6 border-t border-gray-200">
                 <div className="grid grid-cols-2 gap-4 text-center">
@@ -90,13 +172,46 @@ export const ProfilePage = () => {
               </div>
 
               <div className="w-full mt-6 pt-6 border-t border-gray-200">
-                <Button
-                  onClick={handleLogout}
-                  className="w-full px-4 py-3 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600"
-                >
-                  <LogOut className="w-4 h-4 inline mr-2" />
-                  Logout
-                </Button>
+                {!isEditing ? (
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => setIsEditing(true)}
+                      className="w-full px-4 py-3 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700"
+                    >
+                      <Edit2 className="w-4 h-4 inline mr-2" />
+                      Edit Profile
+                    </Button>
+                    <Button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-3 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600"
+                    >
+                      <LogOut className="w-4 h-4 inline mr-2" />
+                      Logout
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Button
+                      onClick={handleSaveProfile}
+                      disabled={isSaving}
+                      className="w-full px-4 py-3 rounded-lg font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      <Save className="w-4 h-4 inline mr-2" />
+                      {isSaving ? 'Saving...' : 'Save Changes'}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        setIsEditing(false);
+                        setEditedPhone(user?.phone || '');
+                        setEditedLocation(user?.location || user?.address || '');
+                      }}
+                      className="w-full px-4 py-3 rounded-lg font-medium bg-gray-400 text-white hover:bg-gray-500"
+                    >
+                      <X className="w-4 h-4 inline mr-2" />
+                      Cancel
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </GlassCard>

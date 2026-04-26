@@ -67,31 +67,31 @@ export const router = createBrowserRouter([
       },
       {
         path: "user/home",
-        element: <UserHome />,
+        element: <ProtectedRoute requiredRole="user" requireEmailVerification={true}><UserHome /></ProtectedRoute>,
       },
       {
         path: "user/booking",
-        element: <BookingPage />,
+        element: <ProtectedRoute requiredRole="user" requireEmailVerification={true}><BookingPage /></ProtectedRoute>,
       },
       {
         path: "user/payment",
-        element: <PaymentPage />,
+        element: <ProtectedRoute requiredRole="user" requireEmailVerification={true}><PaymentPage /></ProtectedRoute>,
       },
       {
         path: "user/booking-confirmation",
-        element: <BookingConfirmation />,
+        element: <ProtectedRoute requiredRole="user" requireEmailVerification={true}><BookingConfirmation /></ProtectedRoute>,
       },
       {
         path: "user/history",
-        element: <UserBookingHistory />,
+        element: <ProtectedRoute requiredRole="user" requireEmailVerification={true}><UserBookingHistory /></ProtectedRoute>,
       },
       {
         path: "user/subscription",
-        element: <SubscriptionPage />,
+        element: <ProtectedRoute requiredRole="user" requireEmailVerification={true}><SubscriptionPage /></ProtectedRoute>,
       },
       {
         path: "user/profile",
-        element: <ProfilePage />,
+        element: <ProtectedRoute requiredRole="user" requireEmailVerification={true}><ProfilePage /></ProtectedRoute>,
       },
       {
         path: "contact",

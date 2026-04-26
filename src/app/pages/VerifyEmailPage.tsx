@@ -3,19 +3,17 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { Button } from '../components/Button';
 import { Navbar } from '../components/Navbar';
 import { CheckCircle2, AlertCircle, Loader } from 'lucide-react';
-
-const RAW_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
-const API_BASE_URL =
-  typeof window !== 'undefined' && window.location.hostname.includes('localhost')
-    ? '/api'
-    : RAW_API_BASE_URL;
+import { getAPI_BASE_URL } from '../lib/apiConfig';
+import { useAuth } from '../context/AuthContext';
 
 export const VerifyEmailPage = () => {
   const navigate = useNavigate();
+  const { refreshCurrentUser } = useAuth();
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Verifying your email...');
   const [email, setEmail] = useState('');
+  const [redirectPath, setRedirectPath] = useState('/login');
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -29,7 +27,7 @@ export const VerifyEmailPage = () => {
         }
 
         // First, try to decode the token to get the email
-        const response = await fetch(`${API_BASE_URL}/auth/verify-email-confirm`, {
+        const response = await fetch(`${getAPI_BASE_URL()}/auth/verify-email-confirm`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -45,9 +43,18 @@ export const VerifyEmailPage = () => {
 
         setStatus('success');
         setMessage('Your email has been verified successfully!');
+        setEmail(data.email || '');
+
+        const refreshedUser = await refreshCurrentUser('user').catch(() => null);
+        const nextPath = refreshedUser?.role === 'admin'
+          ? '/admin/dashboard'
+          : refreshedUser?.emailVerified
+          ? '/user/home'
+          : '/login';
+        setRedirectPath(nextPath);
         
         setTimeout(() => {
-          navigate('/login');
+          navigate(nextPath, { replace: true });
         }, 3000);
       } catch (error) {
         setStatus('error');
@@ -56,7 +63,7 @@ export const VerifyEmailPage = () => {
     };
 
     verifyEmail();
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, refreshCurrentUser]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-50">
@@ -85,14 +92,14 @@ export const VerifyEmailPage = () => {
               <h1 className="text-3xl font-bold text-gray-800 mb-3">Email Verified!</h1>
               <p className="text-gray-600 mb-6">{message}</p>
               <p className="text-sm text-gray-500 mb-6">
-                Redirecting to login in 3 seconds...
+                Redirecting to {redirectPath === '/login' ? 'login' : 'dashboard'} in 3 seconds...
               </p>
               <Button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate(redirectPath, { replace: true })}
                 variant="primary"
                 className="w-full"
               >
-                Go to Login Now
+                {redirectPath === '/login' ? 'Go to Login Now' : 'Go to Dashboard Now'}
               </Button>
             </>
           )}

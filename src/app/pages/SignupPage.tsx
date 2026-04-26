@@ -2,13 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/Button';
 import { Navbar } from '../components/Navbar';
-import { Mail, CheckCircle2, AlertCircle, Loader } from 'lucide-react';
-
-const RAW_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
-const API_BASE_URL =
-  typeof window !== 'undefined' && window.location.hostname.includes('localhost')
-    ? '/api'
-    : RAW_API_BASE_URL;
+import { Mail, CheckCircle2, AlertCircle, Loader, Eye, EyeOff, Lock } from 'lucide-react';
+import { getAPI_BASE_URL } from '../lib/apiConfig';
 
 export const SignupPage = () => {
   const navigate = useNavigate();
@@ -22,6 +17,8 @@ export const SignupPage = () => {
   const [error, setError] = useState('');
   const [verificationSent, setVerificationSent] = useState(false);
   const [sentEmail, setSentEmail] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -50,7 +47,7 @@ export const SignupPage = () => {
       }
 
       // Step 1: Send verification email
-      const verificationResponse = await fetch(`${API_BASE_URL}/auth/verify-email-send`, {
+      const verificationResponse = await fetch(`${getAPI_BASE_URL()}/auth/verify-email-send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -160,30 +157,58 @@ export const SignupPage = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Password *
               </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="At least 8 characters"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-transparent"
-              />
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="At least 8 characters"
+                  required
+                  className="w-full px-4 py-2 pl-12 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Confirm Password *
               </label>
-              <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                placeholder="Confirm your password"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-transparent"
-              />
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Confirm your password"
+                  required
+                  className="w-full px-4 py-2 pl-12 pr-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-700 focus:border-transparent"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <Button

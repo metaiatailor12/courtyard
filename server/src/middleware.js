@@ -39,6 +39,7 @@ async function requireAuth(req, res, next) {
       await userRef.set({
         name: decoded.name || decoded.email || 'User',
         email: decoded.email || '',
+        emailVerified: decoded.email_verified === true,
         phone: decoded.phone_number || null,
         role: 'user',
         createdAt: new Date(),
@@ -51,6 +52,7 @@ async function requireAuth(req, res, next) {
       sub: decoded.uid,
       role: profile.role || 'user',
       email: profile.email || decoded.email || '',
+      emailVerified: profile.emailVerified === true || decoded.email_verified === true,
       name: profile.name || decoded.name || decoded.email || 'User',
       phone: profile.phone || decoded.phone_number || null,
     };

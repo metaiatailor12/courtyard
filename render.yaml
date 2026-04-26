@@ -30,7 +30,7 @@ services:
       - key: JWT_SECRET
         value: your_jwt_secret_here_change_in_production
       - key: GMAIL_ADMIN_EMAIL
-        value: your_gmail@gmail.com
+        value: hecourtyardofficial@gmail.com
       - key: GMAIL_APP_PASSWORD
         fromDatabase:
           name: credentials

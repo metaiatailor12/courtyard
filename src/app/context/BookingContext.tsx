@@ -90,6 +90,7 @@ export interface Booking {
   userName?: string;
   userEmail?: string;
   userPhone?: string;
+  confirmationEmailSent?: boolean;
 }
 
 export interface Subscription {
@@ -110,6 +111,7 @@ export interface Subscription {
   userEmail?: string;
   userPhone?: string;
   createdAt: string;
+  confirmationEmailSent?: boolean;
 }
 
 interface BookingContextType {
@@ -129,6 +131,7 @@ interface BookingContextType {
   createSubscription: (subscription: Omit<Subscription, 'id' | 'createdAt'>, options?: { asAdmin?: boolean }) => Promise<Subscription>;
   cancelBooking: (bookingId: string, options?: { asAdmin?: boolean }) => Promise<void>;
   cancelSubscription: (subscriptionId: string, options?: { asAdmin?: boolean }) => Promise<void>;
+  updateBooking: (bookingId: string, updates: { paymentStatus?: 'paid' | 'pending' }) => Promise<Booking>;
   isSlotBooked: (date: string, court: number, time: string) => boolean;
   getTotalAmount: () => number;
 }
@@ -519,6 +522,30 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     setSubscriptions(prev => prev.map(existing => (existing.id === payload.subscription.id ? payload.subscription : existing)));
   };
 
+  const updateBooking = async (bookingId: string, updates: { paymentStatus?: 'paid' | 'pending' }): Promise<Booking> => {
+    const accessToken = await getAccessToken();
+    const endpoint = `${getAPI_BASE_URL()}/admin/bookings/${bookingId}`;
+
+    const response = await fetch(endpoint, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(updates),
+    });
+
+    const payload = await parseApiPayload(response);
+    if (!response.ok || !payload?.booking) {
+      throw new Error(getApiErrorMessage(response, payload, 'Unable to update booking'));
+    }
+
+    const updatedBooking: Booking = payload.booking;
+    setBookings(prev => prev.map(existing => (existing.id === updatedBooking.id ? updatedBooking : existing)));
+
+    return updatedBooking;
+  };
+
   const getTotalAmount = () => {
     const subtotal = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
     const gst = subtotal * 0.18;
@@ -539,6 +566,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         createSubscription,
         cancelBooking,
         cancelSubscription,
+        updateBooking,
         isSlotBooked,
         getTotalAmount,
       }}

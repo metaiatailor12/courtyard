@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
-import { ArrowLeft, Lock, LoaderCircle } from 'lucide-react';
+import { ArrowLeft, Lock, LoaderCircle, Eye, EyeOff } from 'lucide-react';
 import { GlassCard } from '../components/GlassCard';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
@@ -15,6 +15,8 @@ export const ResetPasswordPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const role = useMemo<'user' | 'admin'>(() => {
     return location.pathname.startsWith('/admin') ? 'admin' : 'user';
@@ -85,34 +87,79 @@ export const ResetPasswordPage = () => {
 
           {user ? (
             <form onSubmit={handleSubmit} className="space-y-6">
-              <Input
-                label="New Password"
-                type="password"
-                icon={<Lock className="w-5 h-5" />}
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (error) {
-                    setError('');
-                  }
-                }}
-                error={error}
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Password
+                </label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="Enter new password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (error) {
+                        setError('');
+                      }
+                    }}
+                    className={`w-full px-4 py-3 pl-12 pr-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${
+                      error ? 'border-red-500 focus:ring-red-500' : ''
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
 
-              <Input
-                label="Confirm New Password"
-                type="password"
-                icon={<Lock className="w-5 h-5" />}
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value);
-                  if (error) {
-                    setError('');
-                  }
-                }}
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (error) {
+                        setError('');
+                      }
+                    }}
+                    className={`w-full px-4 py-3 pl-12 pr-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${
+                      error ? 'border-red-500 focus:ring-red-500' : ''
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
 
               <Button type="submit" variant="primary" className="w-full" loading={loading} disabled={!user}>
                 Update Password
