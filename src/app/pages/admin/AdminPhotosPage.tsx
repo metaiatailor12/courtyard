@@ -142,7 +142,7 @@ export const AdminPhotosPage = () => {
 
     const loadGalleryFromApi = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/gallery`);
+        const res = await fetch(`${API_BASE_URL}/gallery`, { cache: 'no-store' });
         if (!res.ok) return;
         const payload = await res.json().catch(() => null);
         if (payload && Array.isArray(payload.gallery)) {

@@ -139,7 +139,7 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
           fetchJsonWithCache<{ gallery?: LandingPageContent['gallery'] }>(`${getAPI_BASE_URL()}/gallery`, {
             cacheKey: `${CACHE_KEY}:gallery`,
             ttlMs: CACHE_TTL_MS,
-            force,
+            force: true,
           }),
           fetchJsonWithCache<{ reviews?: LandingPageContent['reviews'] }>(`${getAPI_BASE_URL()}/reviews`, {
             cacheKey: `${CACHE_KEY}:reviews`,
