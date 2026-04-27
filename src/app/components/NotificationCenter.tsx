@@ -35,7 +35,7 @@ export const NotificationCenter = () => {
       const target = event.target as Node;
       const clickedInsideButton = buttonRef.current?.contains(target);
       const clickedInsidePanel = panelRef.current?.contains(target) || dropdownRef.current?.contains(target);
-      if (!clickedInsideButton && !clickedInsidePanel) {
+        const [anchorStyle, setAnchorStyle] = useState<React.CSSProperties | null>(null);
         setIsOpen(false);
       }
     };
@@ -72,13 +72,26 @@ export const NotificationCenter = () => {
   const getTypeColor = (type: string) => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 border-green-200';
-      case 'error':
-        return 'bg-red-50 border-red-200';
-      case 'warning':
-        return 'bg-orange-50 border-orange-200';
-      default:
-        return 'bg-blue-50 border-blue-200';
+        // Compute anchor position for portal dropdown when opened, and update on resize/scroll
+        useEffect(() => {
+          const compute = () => {
+            const btn = buttonRef.current;
+            if (!btn) return setAnchorStyle(null);
+            const rect = btn.getBoundingClientRect();
+            const right = Math.max(8, window.innerWidth - rect.right);
+            const top = rect.bottom + 8;
+            setAnchorStyle({ position: 'fixed', top: `${top}px`, right: `${right}px`, zIndex: 9999 });
+          };
+          if (isOpen) {
+            compute();
+            window.addEventListener('resize', compute);
+            window.addEventListener('scroll', compute, true);
+          }
+          return () => {
+            window.removeEventListener('resize', compute);
+            window.removeEventListener('scroll', compute, true);
+          };
+        }, [isOpen]);
     }
   };
 
@@ -102,7 +115,7 @@ export const NotificationCenter = () => {
       </button>
 
       {/* Dropdown Panel */}
-      <AnimatePresence>
+                // Render dropdown via portal and position it near the bell button to avoid ancestor clipping
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
