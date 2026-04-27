@@ -141,7 +141,7 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
             ttlMs: CACHE_TTL_MS,
             force,
           }),
-          fetchJsonWithCache<{ reviews?: LandingPageContent['reviews'] }>(`${getAPI_BASE_URL()}/reviews?limit=6`, {
+          fetchJsonWithCache<{ reviews?: LandingPageContent['reviews'] }>(`${getAPI_BASE_URL()}/reviews`, {
             cacheKey: `${CACHE_KEY}:reviews`,
             ttlMs: CACHE_TTL_MS,
             force,

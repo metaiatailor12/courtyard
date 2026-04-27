@@ -4,6 +4,15 @@ import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { getCurrentUserToken } from '../../lib/firebaseClient';
+import { useNotifications } from '../../context/NotificationContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 
 type Review = {
   id: string;
@@ -29,6 +38,9 @@ export const AdminReviews = () => {
   const [error, setError] = useState('');
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
+  const [deletingReviewId, setDeletingReviewId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { addNotification } = useNotifications();
 
   const loadReviews = async () => {
     setLoading(true);
@@ -114,22 +126,35 @@ export const AdminReviews = () => {
 
       setReviews((prev) => prev.map((review) => (review.id === reviewId ? payload.review : review)));
       window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
+      addNotification({
+        type: 'success',
+        title: 'Reply Saved',
+        message: 'Your reply has been posted successfully.',
+      });
     } catch (saveError) {
       const message = saveError instanceof Error ? saveError.message : 'Unable to save reply';
       setError(message);
+      addNotification({
+        type: 'error',
+        title: 'Failed to Save Reply',
+        message,
+      });
     } finally {
       setSavingReviewId(null);
     }
   };
 
-  const deleteReview = async (reviewId: string) => {
-    if (!confirm('Delete this review? This action cannot be undone.')) return;
+  const handleDeleteConfirm = async () => {
+    if (!deletingReviewId) return;
+    
+    setDeleteDialogOpen(false);
     setError('');
+
     try {
       const token = await getCurrentUserToken();
       if (!token) throw new Error('Please sign in again to delete review.');
 
-      const response = await fetch(`${API_BASE_URL}/admin/reviews/${reviewId}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/reviews/${deletingReviewId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -137,12 +162,29 @@ export const AdminReviews = () => {
       const payload = await response.json().catch(() => null);
       if (!response.ok) throw new Error(payload?.error?.message || 'Unable to delete review');
 
-      setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+      setReviews((prev) => prev.filter((r) => r.id !== deletingReviewId));
       window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
+      addNotification({
+        type: 'success',
+        title: 'Review Deleted',
+        message: 'The review has been successfully deleted.',
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to delete review';
       setError(message);
+      addNotification({
+        type: 'error',
+        title: 'Failed to Delete Review',
+        message,
+      });
+    } finally {
+      setDeletingReviewId(null);
     }
+  };
+
+  const deleteReview = (reviewId: string) => {
+    setDeletingReviewId(reviewId);
+    setDeleteDialogOpen(true);
   };
 
   return (
@@ -240,6 +282,24 @@ export const AdminReviews = () => {
           </div>
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogTitle>Delete Review</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. Are you sure you want to permanently delete this review?
+          </AlertDialogDescription>
+          <div className="flex gap-3 justify-end">
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Delete
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

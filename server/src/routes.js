@@ -28,6 +28,7 @@ const {
 	listReviews,
 	createReview,
 	replyToReview,
+	deleteReview,
 	storeVerificationToken,
 	verifyEmail,
 	checkEmailVerification,
