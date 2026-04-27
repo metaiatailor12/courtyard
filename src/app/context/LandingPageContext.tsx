@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import { getCurrentUserToken } from '../lib/firebaseClient';
 import { getAPI_BASE_URL } from '../lib/apiConfig';
 import { showErrorToast } from '../utils/notificationHelpers';
-import { fetchJsonWithCache, invalidateCachedJson } from '../lib/responseCache';
+import { fetchJsonWithCache, invalidateCachedJson, writeCachedJson } from '../lib/responseCache';
 
 export interface LandingPageContent {
   // Hero Section
@@ -156,11 +156,21 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
           return;
         }
 
-        setContent(normalizeLandingContent({
+        const normalized = normalizeLandingContent({
           ...(remoteContent as Partial<LandingPageContent>),
           gallery: remoteGallery,
           reviews: remoteReviews,
-        }));
+        });
+
+        setContent(normalized);
+
+        try {
+          writeCachedJson(CACHE_KEY, { settings: { landing: normalized } }, CACHE_TTL_MS);
+          writeCachedJson(`${CACHE_KEY}:gallery`, { gallery: remoteGallery }, CACHE_TTL_MS);
+          writeCachedJson(`${CACHE_KEY}:reviews`, { reviews: remoteReviews }, CACHE_TTL_MS);
+        } catch {
+          // Ignore cache write failures.
+        }
       } catch {
         // Keep the empty state if the backend is temporarily unavailable.
       }
@@ -175,6 +185,12 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
       void loadRemoteContent(true);
     };
 
+    const handleStorageEvent = (ev: StorageEvent) => {
+      if (ev.key === 'tcy:settings-updated') {
+        handleSettingsUpdated();
+      }
+    };
+
     const pollTimer = window.setInterval(() => {
       if (document.visibilityState !== 'visible') {
         return;
@@ -184,11 +200,13 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
     }, 30000);
 
     window.addEventListener('tcy:settings-updated', handleSettingsUpdated);
+    window.addEventListener('storage', handleStorageEvent);
 
     return () => {
       active = false;
       window.clearInterval(pollTimer);
       window.removeEventListener('tcy:settings-updated', handleSettingsUpdated);
+      window.removeEventListener('storage', handleStorageEvent);
     };
   }, []);
 

@@ -82,6 +82,7 @@ export const AdminDashboard = () => {
   }, [showUserModal]);
 
   const currentMonthKey = useMemo(() => format(new Date(), 'yyyy-MM'), []);
+  const todayKey = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
   const monthLabel = useMemo(() => format(new Date(), 'MMMM yyyy'), []);
 
   const activeBookings = useMemo(() => bookings.filter(booking => booking.status !== 'cancelled'), [bookings]);
@@ -197,7 +198,27 @@ export const AdminDashboard = () => {
     },
   ];
 
-  const upcomingBookings = bookings.filter(b => getEffectiveBookingStatus(b) === 'upcoming').slice(0, 5);
+  const upcomingBookings = useMemo(() => {
+    return bookings
+      .filter((booking) => {
+        if (booking.status === 'cancelled') {
+          return false;
+        }
+
+        const bookingDateKey = String(booking.date || '').slice(0, 10);
+        if (!bookingDateKey) {
+          return getEffectiveBookingStatus(booking) === 'upcoming';
+        }
+
+        return bookingDateKey >= todayKey;
+      })
+      .sort((a, b) => {
+        const left = `${a.date || ''} ${a.createdAt || ''}`;
+        const right = `${b.date || ''} ${b.createdAt || ''}`;
+        return left.localeCompare(right);
+      })
+      .slice(0, 5);
+  }, [bookings, todayKey]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -249,20 +270,26 @@ export const AdminDashboard = () => {
               </button>
             </div>
             <div className="space-y-2 md:space-y-3">
-              {upcomingBookings.map((booking) => (
-                <div key={booking.id} className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-800 text-sm md:text-base truncate">{booking.id}</p>
-                      <p className="text-xs md:text-sm text-gray-600 truncate">{booking.date} • {booking.slots.length} slots</p>
-                    </div>
-                  </div>
-                  <span className="font-semibold text-[#808000] text-sm md:text-base ml-2 flex-shrink-0">₹{booking.totalAmount}</span>
+              {upcomingBookings.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-gray-500">
+                  No upcoming bookings yet.
                 </div>
-              ))}
+              ) : (
+                upcomingBookings.map((booking) => (
+                  <div key={booking.id} className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                    <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                      <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-gray-800 text-sm md:text-base truncate">{booking.id}</p>
+                        <p className="text-xs md:text-sm text-gray-600 truncate">{booking.date} • {booking.slots.length} slots</p>
+                      </div>
+                    </div>
+                    <span className="font-semibold text-[#808000] text-sm md:text-base ml-2 flex-shrink-0">₹{booking.totalAmount}</span>
+                  </div>
+                ))
+              )}
             </div>
           </GlassCard>
 

@@ -28,14 +28,14 @@ export const RevenueChart = memo(({ data }: RevenueChartProps) => {
   return (
     <div className="w-full h-[250px] flex flex-col">
       {/* Chart Area */}
-      <div className="flex-1 relative flex items-end justify-around px-4 pb-8">
+      <div className="flex-1 relative flex items-end justify-around px-4 pb-8 pt-2">
         {chartData.map((item, index) => {
           const height = (item.revenue / scaleMax) * 100;
           
           return (
             <div
               key={`bar-${index}-${item.month}`}
-              className="group relative flex flex-col items-center"
+              className="group relative flex h-full flex-col items-center justify-end"
               style={{ width: `${barWidth - 2}%` }}
             >
               {/* Tooltip */}
@@ -46,12 +46,12 @@ export const RevenueChart = memo(({ data }: RevenueChartProps) => {
               
               {/* Bar */}
               <div
-                className="w-full bg-green-900 rounded-t-lg transition-all duration-300 hover:bg-green-950 max-w-[60px]"
+                className="w-full max-w-[60px] bg-green-900 rounded-t-lg transition-all duration-300 hover:bg-green-950"
                 style={{ height: `${height}%` }}
               />
               
               {/* Label */}
-              <div className="text-xs text-gray-600 mt-2 absolute -bottom-6">
+              <div className="text-xs text-gray-600 mt-2">
                 {item.month}
               </div>
             </div>
@@ -60,7 +60,7 @@ export const RevenueChart = memo(({ data }: RevenueChartProps) => {
       </div>
       
       {/* Y-axis labels */}
-      <div className="absolute left-0 top-0 h-[200px] flex flex-col justify-between text-xs text-gray-600 pr-2">
+      <div className="absolute left-0 top-2 h-[200px] flex flex-col justify-between text-xs text-gray-600 pr-2">
         <div>₹{Math.round(scaleMax).toLocaleString()}</div>
         <div>₹{Math.round(scaleMax * 0.66).toLocaleString()}</div>
         <div>₹{Math.round(scaleMax * 0.33).toLocaleString()}</div>

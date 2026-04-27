@@ -356,7 +356,11 @@ async function getGalleryImages(limit) {
     const snapshot = await query.get();
 
     if (snapshot.empty) {
-      return getFallbackGallery();
+      // Return an empty gallery when no admin-uploaded items exist.
+      // Previously this returned a default fallback gallery which made
+      // non-admin images appear in the public site. To ensure only
+      // admin-uploaded photos are shown, return an empty array here.
+      return [];
     }
 
     return snapshot.docs.map((doc) => {

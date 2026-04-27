@@ -5,6 +5,16 @@ import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../components/ui/alert-dialog';
 import { useLandingPage } from '../../context/LandingPageContext';
 import { getCurrentUserToken } from '../../lib/firebaseClient';
 import { showErrorToast, showSuccessToast } from '../../utils/notificationHelpers';
@@ -190,15 +200,33 @@ export const AdminGalleryPage = () => {
   const [gallery, setGallery] = useState<GalleryItem[]>(content.gallery);
   const [draft, setDraft] = useState<GalleryDraft>(createEmptyDraft());
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setGallery(content.gallery);
+
+    const loadGalleryFromApi = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/gallery`);
+        if (!res.ok) return;
+        const payload = await res.json().catch(() => null);
+        if (payload && Array.isArray(payload.gallery)) {
+          setGallery(payload.gallery);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    void loadGalleryFromApi();
   }, [content.gallery]);
 
   const isEditing = editingIndex !== null;
 
   const selectedImagePreview = useMemo(() => draft.previewUrl || (editingIndex !== null ? gallery[editingIndex]?.url || '' : ''), [draft.previewUrl, editingIndex, gallery]);
+
+  const deleteTarget = deleteIndex !== null ? gallery[deleteIndex] : null;
 
   const resetDraft = () => {
     setDraft(createEmptyDraft());
@@ -240,7 +268,7 @@ export const AdminGalleryPage = () => {
 
   const handleSaveImage = async () => {
     if (!draft.dataUrl && editingIndex === null) {
-      alert('Please choose an image file.');
+      showErrorToast('Unable to save image', 'Please choose an image file.');
       return;
     }
 
@@ -289,6 +317,7 @@ export const AdminGalleryPage = () => {
       const savedGallery = await saveGalleryToFirestore(nextGallery);
       persistGallery(savedGallery);
       window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
+      try { window.localStorage.setItem('tcy:settings-updated', String(Date.now())); } catch {};
       showSuccessToast(editingIndex === null ? 'Court image added successfully!' : 'Court image updated successfully!');
       resetDraft();
     } catch (error) {
@@ -321,22 +350,35 @@ export const AdminGalleryPage = () => {
       return;
     }
 
-    if (!window.confirm(`Delete ${image.caption || 'this court image'}?`)) {
+    setDeleteIndex(index);
+  };
+
+  const confirmDeleteImage = async () => {
+    if (deleteIndex === null) {
+      return;
+    }
+
+    const image = gallery[deleteIndex];
+    if (!image) {
+      setDeleteIndex(null);
       return;
     }
 
     try {
-      const savedGallery = await deleteGalleryImage(image.id, image.url, image.caption, index);
+      const savedGallery = await deleteGalleryImage(image.id, image.url, image.caption, deleteIndex);
       persistGallery(savedGallery);
       window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
+      try { window.localStorage.setItem('tcy:settings-updated', String(Date.now())); } catch {};
       showSuccessToast('Court image deleted successfully!');
 
-      if (editingIndex === index) {
+      if (editingIndex === deleteIndex) {
         resetDraft();
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to delete image';
       showErrorToast('Unable to delete image', message);
+    } finally {
+      setDeleteIndex(null);
     }
   };
 
@@ -456,6 +498,25 @@ export const AdminGalleryPage = () => {
               </div>
             )}
           </GlassCard>
+
+          <AlertDialog open={deleteIndex !== null} onOpenChange={(open) => { if (!open) setDeleteIndex(null); }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Image</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {deleteTarget
+                    ? `Delete ${deleteTarget.caption || 'this court image'} from the gallery? This cannot be undone.`
+                    : 'Delete this court image from the gallery? This cannot be undone.'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={() => void confirmDeleteImage()} className="bg-red-600 text-white hover:bg-red-700">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </div>
