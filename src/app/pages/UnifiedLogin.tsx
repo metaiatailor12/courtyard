@@ -225,29 +225,29 @@ export const UnifiedLogin = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 flex items-center justify-center p-4\">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 flex items-start justify-center px-3 py-6 sm:px-4 md:items-center">
+      <div className="w-full max-w-sm sm:max-w-md">
         <button
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6"
+          className="mb-4 flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800 sm:mb-6 sm:text-base"
         >
           <ArrowLeft className="w-5 h-5" />
           Back to Home
         </button>
 
-        <GlassCard className="p-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back!</h1>
-            <p className="text-gray-600">Login to your account</p>
+        <GlassCard className="w-full p-5 shadow-xl sm:p-6 md:p-8">
+          <div className="mb-6 text-center sm:mb-8">
+            <h1 className="text-2xl font-bold text-gray-800 sm:text-3xl mb-2">Welcome Back!</h1>
+            <p className="text-sm text-gray-600 sm:text-base">Login to your account</p>
           </div>
 
           {notice && (
-            <div className="mb-5 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+            <div className="mb-5 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
               {notice}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
             <Input
               label="Email"
               type="email"
@@ -271,7 +271,7 @@ export const UnifiedLogin = () => {
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className={`w-full px-4 py-3 pl-12 pr-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all ${
+                  className={`w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 pl-12 pr-12 transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary ${
                     errors.password ? 'border-red-500 focus:ring-red-500' : ''
                   }`}
                 />
@@ -302,7 +302,7 @@ export const UnifiedLogin = () => {
           </form>
 
           {isEmailUnconfirmedError && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="mt-4 border-t border-gray-200 pt-4">
               <p className="text-sm text-gray-600 mb-3">Need to verify your email?</p>
               <Button
                 type="button"
@@ -321,7 +321,7 @@ export const UnifiedLogin = () => {
           )}
 
 
-          <div className="mt-6 text-center space-y-2 text-sm">
+          <div className="mt-6 space-y-2 text-center text-sm">
             <p className="text-gray-600">
               Don't have an account?{' '}
               <Link
