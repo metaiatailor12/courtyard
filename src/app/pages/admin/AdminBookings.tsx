@@ -75,6 +75,11 @@ export const AdminBookings = () => {
     }
   };
 
+  const handleDeleteBookingFromDetails = (bookingId: string) => {
+    setViewDetailsModal(null);
+    setConfirmDialog({ type: 'booking', id: bookingId });
+  };
+
   const handleCreateBooking = async (data: any) => {
     const toHourRange = (value: string) => {
       const match = value.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -674,7 +679,18 @@ export const AdminBookings = () => {
                 )}
               </div>
               
-              <div className="p-6 border-t border-gray-200 flex justify-end">
+              <div className="p-6 border-t border-gray-200 flex items-center justify-between gap-3">
+                {viewDetailsModal.type === 'booking' && getEffectiveBookingStatus(viewDetailsModal.data) === 'upcoming' ? (
+                  <Button
+                    variant="danger"
+                    onClick={() => handleDeleteBookingFromDetails(viewDetailsModal.data.id)}
+                  >
+                    Delete Booking
+                  </Button>
+                ) : (
+                  <div />
+                )}
+
                 <Button onClick={() => setViewDetailsModal(null)}>
                   Close
                 </Button>
