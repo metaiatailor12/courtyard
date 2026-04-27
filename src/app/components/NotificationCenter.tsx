@@ -3,11 +3,15 @@ import { Bell, X, Check, CheckCheck, Trash2, Info, AlertCircle, AlertTriangle, C
 import { useNotifications } from '../context/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'motion/react';
+import { createPortal } from 'react-dom';
 
 export const NotificationCenter = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, clearAll } = useNotifications();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null); // used for portal/mobile panel
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [isMobileView, setIsMobileView] = useState<boolean>(false);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -24,6 +28,33 @@ export const NotificationCenter = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
+
+  // Close dropdown when clicking outside (handles both desktop and portal/mobile panel)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const clickedInsideButton = buttonRef.current?.contains(target);
+      const clickedInsidePanel = panelRef.current?.contains(target) || dropdownRef.current?.contains(target);
+      if (!clickedInsideButton && !clickedInsidePanel) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Track small viewport to switch to bottom-sheet style
+  useEffect(() => {
+    const check = () => setIsMobileView(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   const getIcon = (type: string) => {
     switch (type) {
