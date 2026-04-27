@@ -78,7 +78,7 @@ export const NotificationCenter = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50"
+            className="absolute right-0 mt-2 w-[calc(100vw-1rem)] max-w-[24rem] sm:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 origin-top-right"
           >
             {/* Header */}
             <div className="bg-gradient-to-r from-green-900 to-green-800 p-4 text-white">
@@ -114,7 +114,7 @@ export const NotificationCenter = () => {
             </div>
 
             {/* Notifications List */}
-            <div className="max-h-[500px] overflow-y-auto">
+            <div className="max-h-[70vh] sm:max-h-[500px] overflow-y-auto">
               {notifications.length === 0 ? (
                 <div className="p-8 text-center text-gray-500">
                   <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
