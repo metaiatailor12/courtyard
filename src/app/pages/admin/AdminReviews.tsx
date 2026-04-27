@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { MessageSquare, Send, Star } from 'lucide-react';
+import { MessageSquare, Send, Star, Trash2 } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
@@ -122,6 +122,29 @@ export const AdminReviews = () => {
     }
   };
 
+  const deleteReview = async (reviewId: string) => {
+    if (!confirm('Delete this review? This action cannot be undone.')) return;
+    setError('');
+    try {
+      const token = await getCurrentUserToken();
+      if (!token) throw new Error('Please sign in again to delete review.');
+
+      const response = await fetch(`${API_BASE_URL}/admin/reviews/${reviewId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(payload?.error?.message || 'Unable to delete review');
+
+      setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+      window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to delete review';
+      setError(message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -203,6 +226,12 @@ export const AdminReviews = () => {
                     >
                       <Send className="w-4 h-4" />
                       {savingReviewId === review.id ? 'Saving...' : review.adminReply ? 'Update Reply' : 'Post Reply'}
+                    </Button>
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <Button variant="destructive" onClick={() => void deleteReview(review.id)}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Review
                     </Button>
                   </div>
                 </div>

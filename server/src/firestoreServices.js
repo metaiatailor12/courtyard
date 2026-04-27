@@ -1339,6 +1339,24 @@ async function replyToReview(reviewId, payload, authUser) {
   return mapReviewDoc(updated);
 }
 
+async function deleteReview(reviewId, authUser) {
+  if (!authUser?.sub || authUser.role !== 'admin') {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  const db = getDb();
+  const ref = db.collection('reviews').doc(reviewId);
+  const doc = await ref.get();
+
+  if (!doc.exists) {
+    throw new ApiError(404, 'Review not found');
+  }
+
+  // Optionally keep an audit record - for now just delete
+  await ref.delete();
+  return { id: reviewId };
+}
+
 async function storeVerificationToken(email, token, expiryTime) {
   const db = getDb();
   const normalizedEmail = String(email || '').trim().toLowerCase();
@@ -1469,6 +1487,7 @@ module.exports = {
   listReviews,
   createReview,
   replyToReview,
+  deleteReview,
   storeVerificationToken,
   verifyEmail,
   checkEmailVerification,

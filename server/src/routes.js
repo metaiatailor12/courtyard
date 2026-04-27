@@ -369,6 +369,11 @@ router.patch('/admin/reviews/:reviewId/reply', requireAuth, requireRole('admin')
 	res.json({ review });
 }));
 
+router.delete('/admin/reviews/:reviewId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+	const result = await deleteReview(req.params.reviewId, req.auth);
+	res.json({ deleted: result });
+}));
+
 router.get('/admin/messages', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => {
 	const messages = await listContactMessages();
 	res.json({ messages });
