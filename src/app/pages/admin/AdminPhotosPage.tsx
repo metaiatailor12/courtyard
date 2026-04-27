@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Image, Plus, Save, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, Image, Plus, Save, Upload } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
@@ -37,48 +37,37 @@ const API_BASE_URL =
     ? '/api'
     : RAW_API_BASE_URL;
 
-const readFileAsDataUrl = (file: File) => {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Unable to read image file'));
-    reader.readAsDataURL(file);
-  });
-};
+const readFileAsDataUrl = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(String(reader.result || ''));
+  reader.onerror = () => reject(new Error('Unable to read image file'));
+  reader.readAsDataURL(file);
+});
 
-const optimizeImageDataUrl = (dataUrl: string, maxDimension = 1400, quality = 0.8) => {
-  return new Promise<string>((resolve, reject) => {
-    const image = new window.Image();
-    image.onload = () => {
-      const width = image.width;
-      const height = image.height;
+const optimizeImageDataUrl = (dataUrl: string, maxDimension = 1400, quality = 0.8) => new Promise<string>((resolve, reject) => {
+  const image = new window.Image();
+  image.onload = () => {
+    const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+    const targetWidth = Math.max(1, Math.round(image.width * scale));
+    const targetHeight = Math.max(1, Math.round(image.height * scale));
 
-      const scale = Math.min(1, maxDimension / Math.max(width, height));
-      const targetWidth = Math.max(1, Math.round(width * scale));
-      const targetHeight = Math.max(1, Math.round(height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
 
-      const canvas = document.createElement('canvas');
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error('Unable to process image'));
+      return;
+    }
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Unable to process image'));
-        return;
-      }
-
-      ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
-      const webpDataUrl = canvas.toDataURL('image/webp', quality);
-      const optimizedDataUrl = webpDataUrl.startsWith('data:image/webp')
-        ? webpDataUrl
-        : canvas.toDataURL('image/jpeg', quality);
-
-      resolve(optimizedDataUrl);
-    };
-    image.onerror = () => reject(new Error('Unable to process image'));
-    image.src = dataUrl;
-  });
-};
+    ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+    const webpDataUrl = canvas.toDataURL('image/webp', quality);
+    resolve(webpDataUrl.startsWith('data:image/webp') ? webpDataUrl : canvas.toDataURL('image/jpeg', quality));
+  };
+  image.onerror = () => reject(new Error('Unable to process image'));
+  image.src = dataUrl;
+});
 
 const estimateBytes = (value: string) => new TextEncoder().encode(value).length;
 
@@ -97,19 +86,9 @@ const uploadImageToCloudinary = async (dataUrl: string, fileName: string) => {
     body: JSON.stringify({ image: dataUrl, fileName }),
   });
 
-  const rawText = await response.text().catch(() => '');
-  const payload = rawText ? (() => {
-    try {
-      return JSON.parse(rawText);
-    } catch {
-      return null;
-    }
-  })() : null;
-
+  const payload = await response.json().catch(() => null);
   if (!response.ok || !payload?.upload?.secureUrl) {
-    const statusDetail = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
-    const serverMessage = payload?.error?.message || rawText || 'Unable to upload image to Cloudinary';
-    throw new Error(`${statusDetail}: ${serverMessage}`);
+    throw new Error(payload?.error?.message || 'Unable to upload image');
   }
 
   return payload.upload.secureUrl as string;
@@ -118,7 +97,7 @@ const uploadImageToCloudinary = async (dataUrl: string, fileName: string) => {
 const saveGalleryToFirestore = async (gallery: GalleryItem[]) => {
   const token = await getCurrentUserToken();
   if (!token) {
-    throw new Error('Please sign in again to save gallery changes');
+    throw new Error('Please sign in again to save photos');
   }
 
   const response = await fetch(`${API_BASE_URL}/admin/gallery`, {
@@ -130,60 +109,15 @@ const saveGalleryToFirestore = async (gallery: GalleryItem[]) => {
     body: JSON.stringify({ gallery }),
   });
 
-  const rawText = await response.text().catch(() => '');
-  const payload = rawText
-    ? (() => {
-        try {
-          return JSON.parse(rawText);
-        } catch {
-          return null;
-        }
-      })()
-    : null;
-
+  const payload = await response.json().catch(() => null);
   if (!response.ok) {
-    const statusDetail = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
-    const serverMessage = payload?.error?.message || rawText || 'Unable to save gallery to Firestore';
-    throw new Error(`${statusDetail}: ${serverMessage}`);
+    throw new Error(payload?.error?.message || 'Unable to save photos');
   }
 
   return Array.isArray(payload?.gallery) ? payload.gallery : gallery;
 };
 
-const deleteGalleryImage = async (imageId: string, imageUrl: string, imageCaption: string, imageIndex: number) => {
-  const token = await getCurrentUserToken();
-  if (!token) {
-    throw new Error('Please sign in again to delete gallery images');
-  }
-
-  const response = await fetch(`${API_BASE_URL}/admin/gallery/${imageId}?url=${encodeURIComponent(imageUrl)}&caption=${encodeURIComponent(imageCaption)}&index=${imageIndex}`, {
-    method: 'DELETE',
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const rawText = await response.text().catch(() => '');
-  const payload = rawText
-    ? (() => {
-        try {
-          return JSON.parse(rawText);
-        } catch {
-          return null;
-        }
-      })()
-    : null;
-
-  if (!response.ok) {
-    const statusDetail = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''}`;
-    const serverMessage = payload?.error?.message || rawText || 'Unable to delete gallery image';
-    throw new Error(`${statusDetail}: ${serverMessage}`);
-  }
-
-  return Array.isArray(payload?.gallery) ? payload.gallery : [];
-};
-
-export const AdminGalleryPage = () => {
+export const AdminPhotosPage = () => {
   const navigate = useNavigate();
   const { content } = useLandingPage();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -196,9 +130,10 @@ export const AdminGalleryPage = () => {
     setGallery(content.gallery);
   }, [content.gallery]);
 
-  const isEditing = editingIndex !== null;
-
-  const selectedImagePreview = useMemo(() => draft.previewUrl || (editingIndex !== null ? gallery[editingIndex]?.url || '' : ''), [draft.previewUrl, editingIndex, gallery]);
+  const selectedImagePreview = useMemo(
+    () => draft.previewUrl || (editingIndex !== null ? gallery[editingIndex]?.url || '' : ''),
+    [draft.previewUrl, editingIndex, gallery],
+  );
 
   const resetDraft = () => {
     setDraft(createEmptyDraft());
@@ -208,19 +143,11 @@ export const AdminGalleryPage = () => {
     }
   };
 
-  const persistGallery = (nextGallery: GalleryItem[]) => {
-    setGallery(nextGallery);
-  };
-
   const handleFileChange = async (file: File | null) => {
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     const rawDataUrl = await readFileAsDataUrl(file);
     let dataUrl = rawDataUrl;
-
-    // Resize/compress local uploads to keep settings payload within Firestore limits.
     if (estimateBytes(rawDataUrl) > MAX_IMAGE_BYTES) {
       dataUrl = await optimizeImageDataUrl(rawDataUrl);
     }
@@ -230,12 +157,7 @@ export const AdminGalleryPage = () => {
       return;
     }
 
-    setDraft((prev) => ({
-      ...prev,
-      fileName: file.name,
-      previewUrl: dataUrl,
-      dataUrl,
-    }));
+    setDraft((prev) => ({ ...prev, fileName: file.name, previewUrl: dataUrl, dataUrl }));
   };
 
   const handleSaveImage = async () => {
@@ -249,7 +171,7 @@ export const AdminGalleryPage = () => {
     try {
       const nextGallery = [...gallery];
       const caption = draft.caption.trim();
-      const fallbackCaption = editingIndex !== null ? nextGallery[editingIndex]?.caption || `Court ${editingIndex + 1}` : `Court ${nextGallery.length + 1}`;
+      const fallbackCaption = editingIndex !== null ? nextGallery[editingIndex]?.caption || `Photo ${editingIndex + 1}` : `Photo ${nextGallery.length + 1}`;
       let imageUrl = draft.dataUrl;
 
       if (draft.dataUrl.startsWith('data:image/')) {
@@ -270,10 +192,7 @@ export const AdminGalleryPage = () => {
         });
       } else {
         const existing = nextGallery[editingIndex];
-        if (!existing) {
-          return;
-        }
-
+        if (!existing) return;
         nextGallery[editingIndex] = {
           ...existing,
           url: imageUrl || existing.url,
@@ -287,9 +206,9 @@ export const AdminGalleryPage = () => {
       }
 
       const savedGallery = await saveGalleryToFirestore(nextGallery);
-      persistGallery(savedGallery);
+      setGallery(savedGallery);
       window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
-      showSuccessToast(editingIndex === null ? 'Court image added successfully!' : 'Court image updated successfully!');
+      showSuccessToast(editingIndex === null ? 'Photo added successfully!' : 'Photo updated successfully!');
       resetDraft();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to save image';
@@ -301,35 +220,25 @@ export const AdminGalleryPage = () => {
 
   const handleEditImage = (index: number) => {
     const image = gallery[index];
-    if (!image) {
-      return;
-    }
+    if (!image) return;
 
     setEditingIndex(index);
-    setDraft({
-      caption: image.caption,
-      fileName: '',
-      previewUrl: image.url,
-      dataUrl: image.url,
-    });
+    setDraft({ caption: image.caption, fileName: '', previewUrl: image.url, dataUrl: image.url });
     fileInputRef.current?.click();
   };
 
   const handleDeleteImage = async (index: number) => {
     const image = gallery[index];
-    if (!image) {
-      return;
-    }
+    if (!image) return;
 
-    if (!window.confirm(`Delete ${image.caption || 'this court image'}?`)) {
-      return;
-    }
+    if (!window.confirm(`Delete ${image.caption || 'this photo'}?`)) return;
 
     try {
-      const savedGallery = await deleteGalleryImage(image.id, image.url, image.caption, index);
-      persistGallery(savedGallery);
+      const nextGallery = gallery.filter((_, itemIndex) => itemIndex !== index);
+      const savedGallery = await saveGalleryToFirestore(nextGallery);
+      setGallery(savedGallery);
       window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
-      showSuccessToast('Court image deleted successfully!');
+      showSuccessToast('Photo deleted successfully!');
 
       if (editingIndex === index) {
         resetDraft();
@@ -343,7 +252,6 @@ export const AdminGalleryPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <button
           onClick={() => navigate('/admin/settings')}
@@ -355,7 +263,7 @@ export const AdminGalleryPage = () => {
 
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Photos</h1>
-          <p className="text-gray-600">Add, update, or remove the photos used on the user gallery.</p>
+          <p className="text-gray-600">Upload photos with captions that appear in the user gallery.</p>
         </div>
 
         <div className="grid lg:grid-cols-[0.95fr_1.05fr] gap-6">
@@ -365,7 +273,7 @@ export const AdminGalleryPage = () => {
                 <Image className="w-6 h-6 text-purple-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold">{isEditing ? 'Edit Image' : 'Add New Image'}</h2>
+                <h2 className="text-xl font-semibold">{editingIndex !== null ? 'Edit Photo' : 'Add New Photo'}</h2>
                 <p className="text-sm text-gray-600">Choose a file and set the caption.</p>
               </div>
             </div>
@@ -378,9 +286,7 @@ export const AdminGalleryPage = () => {
                     <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="font-medium text-gray-700">Click to choose an image</p>
                     <p className="text-xs text-gray-500 mt-1">PNG, JPG, JPEG, WEBP</p>
-                    {draft.fileName && (
-                      <p className="text-xs text-green-900 mt-2">Selected: {draft.fileName}</p>
-                    )}
+                    {draft.fileName && <p className="text-xs text-green-900 mt-2">Selected: {draft.fileName}</p>}
                   </div>
                   <input
                     ref={fileInputRef}
@@ -397,7 +303,7 @@ export const AdminGalleryPage = () => {
                 <Input
                   value={draft.caption}
                   onChange={(e) => setDraft((prev) => ({ ...prev, caption: e.target.value }))}
-                  placeholder="Court 4"
+                  placeholder="Court view at sunset"
                 />
               </div>
 
@@ -410,7 +316,7 @@ export const AdminGalleryPage = () => {
               <div className="flex flex-wrap gap-3">
                 <Button variant="primary" onClick={() => void handleSaveImage()} loading={saving} disabled={saving}>
                   <Save className="w-4 h-4" />
-                  {isEditing ? 'Update Image' : 'Add Image'}
+                  {editingIndex !== null ? 'Update Photo' : 'Add Photo'}
                 </Button>
                 <Button variant="outline" onClick={resetDraft} disabled={saving}>
                   Reset
@@ -433,7 +339,7 @@ export const AdminGalleryPage = () => {
 
             {gallery.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-8 text-center text-gray-600">
-                No photos yet. Use Add Photo to upload the first gallery item.
+                No photos yet. Use Add Photo to upload the first image.
               </div>
             ) : (
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -446,7 +352,7 @@ export const AdminGalleryPage = () => {
                       <Button size="sm" variant="secondary" onClick={() => handleEditImage(index)}>
                         Edit
                       </Button>
-                      <Button size="sm" variant="danger" onClick={() => handleDeleteImage(index)}>
+                      <Button size="sm" variant="danger" onClick={() => void handleDeleteImage(index)}>
                         Delete
                       </Button>
                     </div>

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -41,9 +41,30 @@ export const getCurrentUserId = () => {
 
 export const getCurrentUserToken = async () => {
   const currentUser = auth?.currentUser;
-  if (!currentUser) {
+  if (currentUser) {
+    return currentUser.getIdToken();
+  }
+
+  if (!auth) {
     return null;
   }
 
-  return currentUser.getIdToken();
+  return new Promise<string | null>((resolve) => {
+    const timeout = window.setTimeout(() => {
+      unsubscribe();
+      resolve(auth.currentUser ? auth.currentUser.getIdToken() : null);
+    }, 4000);
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      window.clearTimeout(timeout);
+      unsubscribe();
+
+      if (!user) {
+        resolve(null);
+        return;
+      }
+
+      resolve(await user.getIdToken());
+    });
+  });
 };

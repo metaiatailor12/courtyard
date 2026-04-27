@@ -7,6 +7,7 @@ import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import { UserLogin } from "./pages/user/UserLogin";
 import { UserRegister } from "./pages/user/UserRegister";
 import { UserHome } from "./pages/user/UserHome";
+import { UserPhotos } from "./pages/user/UserPhotos";
 import { BookingPage } from "./pages/user/BookingPage";
 import { PaymentPage } from "./pages/user/PaymentPage";
 import { BookingConfirmation } from "./pages/user/BookingConfirmation";
@@ -19,6 +20,7 @@ import { AdminDashboard } from "./pages/admin/AdminDashboard";
 import { AdminBookings } from "./pages/admin/AdminBookings";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 import { AdminGalleryPage } from "./pages/admin/AdminGalleryPage";
+import { AdminPhotosPage } from "./pages/admin/AdminPhotosPage";
 import { AdminReviews } from "./pages/admin/AdminReviews";
 import { AdminMessages } from "./pages/admin/AdminMessages";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
@@ -68,6 +70,10 @@ export const router = createBrowserRouter([
       {
         path: "user/home",
         element: <ProtectedRoute requiredRole="user" requireEmailVerification={true}><UserHome /></ProtectedRoute>,
+      },
+      {
+        path: "user/photos",
+        element: <ProtectedRoute requiredRole="user" requireEmailVerification={true}><UserPhotos /></ProtectedRoute>,
       },
       {
         path: "user/booking",
@@ -140,6 +146,10 @@ export const router = createBrowserRouter([
       {
         path: "admin/settings/gallery",
         element: <ProtectedRoute requiredRole="admin"><AdminGalleryPage /></ProtectedRoute>,
+      },
+      {
+        path: "admin/photos",
+        element: <ProtectedRoute requiredRole="admin"><AdminPhotosPage /></ProtectedRoute>,
       },
       {
         path: "*",

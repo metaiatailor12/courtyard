@@ -136,7 +136,7 @@ export const LandingPageProvider: React.FC<{ children: ReactNode }> = ({ childre
             ttlMs: CACHE_TTL_MS,
             force,
           }),
-          fetchJsonWithCache<{ gallery?: LandingPageContent['gallery'] }>(`${getAPI_BASE_URL()}/gallery?limit=8`, {
+          fetchJsonWithCache<{ gallery?: LandingPageContent['gallery'] }>(`${getAPI_BASE_URL()}/gallery`, {
             cacheKey: `${CACHE_KEY}:gallery`,
             ttlMs: CACHE_TTL_MS,
             force,

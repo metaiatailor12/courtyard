@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router';
-import { LogOut, User, LayoutDashboard, Settings, Calendar, CreditCard, Phone, Menu, X, MessageSquare, Mail } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, Settings, Calendar, CreditCard, Phone, Menu, X, MessageSquare, Mail, Image } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
 import { NotificationCenter } from './NotificationCenter';
@@ -62,6 +62,15 @@ export const Navbar = () => {
                 </Link>
                 {isVerifiedUser && (
                   <>
+                    <Link
+                      to="/user/photos"
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                        isActivePath('/user/photos') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      <Image className="w-4 h-4" />
+                      Photos
+                    </Link>
                     <Link
                       to="/user/booking"
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -206,6 +215,16 @@ export const Navbar = () => {
                   </Link>
                   {isVerifiedUser && (
                     <>
+                      <Link
+                        to="/user/photos"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                          isActivePath('/user/photos') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        <Image className="w-4 h-4" />
+                        Photos
+                      </Link>
                       <Link
                         to="/user/booking"
                         onClick={() => setMobileMenuOpen(false)}

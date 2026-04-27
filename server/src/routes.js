@@ -10,6 +10,7 @@ const {
 	updateAppSettings,
 	getGalleryImages,
 	replaceGalleryImages,
+	deleteGalleryImage,
 	getAvailability,
 	createBookingRecord,
 	listBookings,
@@ -280,6 +281,14 @@ router.post('/admin/gallery/upload', requireAuth, requireRole('admin'), asyncHan
 
 router.patch('/admin/gallery', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
 	const gallery = await replaceGalleryImages(Array.isArray(req.body?.gallery) ? req.body.gallery : []);
+	res.json({ gallery });
+}));
+
+router.delete('/admin/gallery/:imageId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+	const imageUrl = typeof req.query?.url === 'string' ? req.query.url.trim() : '';
+	const imageCaption = typeof req.query?.caption === 'string' ? req.query.caption.trim() : '';
+	const imageIndex = Number.parseInt(String(req.query?.index || ''), 10);
+	const gallery = await deleteGalleryImage(req.params.imageId, imageUrl, imageCaption, imageIndex);
 	res.json({ gallery });
 }));
 

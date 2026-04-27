@@ -410,27 +410,27 @@ export const AdminSettings = () => {
               </div>
             </GlassCard>
 
-            {/* Court Images Management */}
+            {/* Photos Management */}
             <GlassCard className="p-6 lg:col-span-2">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
                   <Image className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold">Court Images</h2>
-                  <p className="text-sm text-gray-600">Manage court photos displayed on homepage</p>
+                  <h2 className="text-xl font-semibold">Photos</h2>
+                  <p className="text-sm text-gray-600">Manage the photos displayed to users.</p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between gap-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4">
                   <div>
-                    <p className="font-medium text-gray-800">Open gallery manager</p>
-                    <p className="text-sm text-gray-600">Add, edit, and delete court images on a dedicated page.</p>
+                    <p className="font-medium text-gray-800">Open photos manager</p>
+                    <p className="text-sm text-gray-600">Add, edit, and delete photos on a dedicated page.</p>
                   </div>
-                  <Button variant="primary" onClick={() => navigate('/admin/settings/gallery')}>
+                  <Button variant="primary" onClick={() => navigate('/admin/photos')}>
                     <Plus className="w-4 h-4" />
-                    Add Image
+                    Manage Photos
                   </Button>
                 </div>
 
@@ -477,9 +477,9 @@ export const AdminSettings = () => {
                     <Image className="w-6 h-6 text-green-900" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800">User Home Gallery</h3>
+                    <h3 className="text-lg font-bold text-gray-800">User Photos</h3>
                     <p className="text-sm text-gray-600 mt-1">
-                      Add or delete the photos that appear after a user logs in.
+                      Add or delete the photos that appear in the user gallery.
                     </p>
                     <p className="text-xs text-gray-500 mt-2">
                       Current photos: {landingFormData.gallery.length}
@@ -488,11 +488,11 @@ export const AdminSettings = () => {
                 </div>
 
                 <Button
-                  onClick={() => navigate('/admin/settings/gallery')}
+                  onClick={() => navigate('/admin/photos')}
                   variant="primary"
                   className="whitespace-nowrap"
                 >
-                  Manage Gallery
+                  Manage Photos
                 </Button>
               </div>
             </GlassCard>

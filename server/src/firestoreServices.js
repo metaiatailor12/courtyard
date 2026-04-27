@@ -458,6 +458,102 @@ async function replaceGalleryImages(items) {
   }));
 }
 
+async function deleteGalleryImage(imageId, imageUrl, imageCaption, imageIndex) {
+  const [currentSettings, currentCollectionGallery] = await Promise.all([
+    getAppSettings(),
+    getGalleryImages(),
+  ]);
+
+  const currentSettingsGallery = Array.isArray(currentSettings?.landing?.gallery)
+    ? currentSettings.landing.gallery
+    : [];
+
+  const galleryByKey = new Map();
+  for (const item of [...currentCollectionGallery, ...currentSettingsGallery]) {
+    if (!item || (!item.id && !item.url)) {
+      continue;
+    }
+
+    const key = item.id || item.url;
+    if (!galleryByKey.has(key)) {
+      galleryByKey.set(key, item);
+    }
+  }
+
+  const currentGallery = Array.from(galleryByKey.values());
+  const normalizeValue = (value) => String(value || '').trim().toLowerCase();
+  const normalizeUrl = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) {
+      return '';
+    }
+
+    try {
+      const parsed = new URL(raw);
+      return `${parsed.origin}${parsed.pathname}`.toLowerCase();
+    } catch {
+      return raw.toLowerCase();
+    }
+  };
+
+  const targetId = normalizeValue(imageId);
+  const targetUrl = normalizeUrl(imageUrl);
+  const targetCaption = normalizeValue(imageCaption);
+
+  console.log('[gallery-delete] attempting', {
+    imageId: targetId,
+    imageUrl: targetUrl,
+    available: currentGallery.map(item => ({
+      id: item.id,
+      url: item.url,
+      caption: item.caption,
+    })),
+  });
+
+  const nextGallery = currentGallery.filter(item => {
+    const itemId = normalizeValue(item.id);
+    const itemUrl = normalizeUrl(item.url);
+    const itemCaption = normalizeValue(item.caption);
+
+    if (targetId && itemId === targetId) {
+      return false;
+    }
+
+    if (targetUrl && itemUrl === targetUrl) {
+      return false;
+    }
+
+    if (targetUrl && item.url && normalizeUrl(item.url).includes(targetUrl)) {
+      return false;
+    }
+
+    if (targetUrl && imageUrl && normalizeUrl(imageUrl).includes(itemUrl)) {
+      return false;
+    }
+
+    if (targetCaption && itemCaption === targetCaption) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (nextGallery.length === currentGallery.length && Number.isInteger(imageIndex) && imageIndex >= 0 && imageIndex < currentGallery.length) {
+    const fallbackTarget = currentGallery[imageIndex];
+    const fallbackNextGallery = currentGallery.filter((_, index) => index !== imageIndex);
+
+    if (fallbackTarget) {
+      return replaceGalleryImages(fallbackNextGallery);
+    }
+  }
+
+  if (nextGallery.length === currentGallery.length) {
+    throw new ApiError(404, 'Gallery image not found');
+  }
+
+  return replaceGalleryImages(nextGallery);
+}
+
 function mapSlot(slot) {
   return {
     id: slot.id || slot.slotId || slot.slot_id,
@@ -1467,6 +1563,7 @@ module.exports = {
   updateAppSettings,
   getGalleryImages,
   replaceGalleryImages,
+  deleteGalleryImage,
   getAvailability,
   createBookingRecord,
   listBookings,

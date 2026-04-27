@@ -19,7 +19,7 @@ export const SubscriptionPage = () => {
   const [selectedCourt, setSelectedCourt] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'onsite'>('online');
+  const [paymentMethod] = useState<'onsite'>('onsite');
   const [dateError, setDateError] = useState('');
 
   const subscriptionPrice = appSettings.pricing.subscription || 2500;
@@ -112,12 +112,58 @@ export const SubscriptionPage = () => {
     setStartDate(value);
   };
 
-  const handleSubscribe = async (method: 'online' | 'onsite' = paymentMethod) => {
+  const handleSubscribe = async () => {
+
+  const handleSubscribe = async () => {
     if (!user) {
       navigate('/user/login');
       return;
     }
 
+    if (!startDate || !selectedCourt || !selectedTimeSlot) {
+      showErrorToast('Incomplete Selection', 'Please select a start date, court, and time slot before subscribing.');
+      return;
+    }
+
+    if (conflictingDates.length > 0) {
+      showErrorToast('Slot Unavailable', `This court and time slot is already booked on ${conflictingDates.length} date(s). Please choose another slot.`);
+      return;
+    }
+
+    setProcessing(true);
+
+    try {
+      const subscription = await createSubscription({
+        courtName: selectedCourt,
+        court: Number(selectedCourt.replace('Court ', '')),
+        timeSlot: selectedTimeSlot,
+        startDate,
+        endDate: calculateEndDate(startDate),
+        weekdaysCount: calculateWeekdays(),
+        amount: subscriptionPrice,
+        status: 'active',
+        paymentId: `ONSITE-${Date.now()}`,
+        paymentMethod: 'onsite',
+        paymentStatus: 'pending',
+        userName: user.name,
+        userEmail: user.email,
+        userPhone: user.phone,
+      });
+
+      console.log('Subscription created:', subscription);
+
+      showSuccessToast('Subscription Reserved', 'Please pay at the venue.');
+      if (subscription.confirmationEmailSent === false) {
+        showErrorToast('Email Not Sent', 'Your subscription was saved, but the confirmation email could not be sent.');
+      }
+      navigate('/user/profile');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Subscription could not be completed';
+      showErrorToast('Subscription Failed', message);
+    } finally {
+      setProcessing(false);
+    }
+  };
     if (!startDate || !selectedCourt || !selectedTimeSlot) {
       showErrorToast('Incomplete Selection', 'Please select a start date, court, and time slot before subscribing.');
       return;
@@ -145,9 +191,9 @@ export const SubscriptionPage = () => {
         weekdaysCount: calculateWeekdays(),
         amount: subscriptionPrice,
         status: 'active',
-        paymentId: method === 'onsite' ? `ONSITE-${Date.now()}` : `PAY${Date.now()}`,
-        paymentMethod: method,
-        paymentStatus: method === 'onsite' ? 'pending' : 'paid',
+        paymentId: `ONSITE-${Date.now()}`,
+        paymentMethod: 'onsite',
+        paymentStatus: 'pending',
         userName: user.name,
         userEmail: user.email,
         userPhone: user.phone,
@@ -155,11 +201,7 @@ export const SubscriptionPage = () => {
 
       console.log('Subscription created:', subscription);
 
-      if (method === 'onsite') {
-        showSuccessToast('Subscription Reserved', 'Please pay at the venue.');
-      } else {
-        showSuccessToast('Subscription Activated', 'Your subscription is now active!');
-      }
+      showSuccessToast('Subscription Reserved', 'Please pay at the venue.');
       if (subscription.confirmationEmailSent === false) {
         showErrorToast('Email Not Sent', 'Your subscription was saved, but the confirmation email could not be sent.');
       }
@@ -183,6 +225,7 @@ export const SubscriptionPage = () => {
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Monthly Subscription</h1>
           <p className="text-sm md:text-base text-gray-600">Subscribe and secure your favorite court & time slot for 30 days</p>
+                  <p className="text-sm md:text-base text-gray-600">Online payments are temporarily closed. Subscribe and pay at the venue.</p>
         </div>
 
         {/* Progress Steps */}
@@ -447,36 +490,14 @@ export const SubscriptionPage = () => {
                   <h3 className="font-semibold">Payment Method</h3>
                   <p className="text-sm text-gray-600">Choose online or onsite payment</p>
                 </div>
+                  <p className="text-sm text-gray-600">Online payments are temporarily unavailable</p>
               </div>
 
               <div className="space-y-3 mb-4">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('online')}
-                  className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                    paymentMethod === 'online'
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <p className="font-medium text-gray-800">Pay Online</p>
-                  <p className="text-xs text-gray-600 mt-1">Secured by Razorpay</p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('onsite')}
-                  className={`w-full p-3 rounded-lg border-2 text-left transition-all ${
-                    paymentMethod === 'onsite'
-                      ? 'border-yellow-700 bg-yellow-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Building2 className={`w-4 h-4 ${paymentMethod === 'onsite' ? 'text-yellow-800' : 'text-gray-500'}`} />
-                    <p className="font-medium text-gray-800">Pay Onsite</p>
-                  </div>
+                <div className="w-full p-3 rounded-lg border-2 text-left transition-all border-yellow-700 bg-yellow-50">
+                  <p className="font-medium text-gray-800">Pay Onsite</p>
                   <p className="text-xs text-gray-600 mt-1">Reserve now, pay at the venue.</p>
-                </button>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -491,15 +512,11 @@ export const SubscriptionPage = () => {
                   <Button
                     variant="primary"
                     className="flex-1"
-                    onClick={() => handleSubscribe(paymentMethod)}
+                    onClick={() => void handleSubscribe()}
                     loading={processing}
                     disabled={processing || conflictingDates.length > 0}
                   >
-                    {processing
-                      ? 'Processing...'
-                      : paymentMethod === 'onsite'
-                      ? `Reserve Onsite - ₹${subscriptionPrice + Math.round(subscriptionPrice * 0.18)}`
-                      : `Pay ₹${subscriptionPrice + Math.round(subscriptionPrice * 0.18)}`}
+                    {processing ? 'Processing...' : `Reserve Onsite - ₹${subscriptionPrice + Math.round(subscriptionPrice * 0.18)}`}
                   </Button>
                 </div>
               </div>

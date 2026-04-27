@@ -84,7 +84,10 @@ export const fetchJsonWithCache = async <T>(
     }
   }
 
-  const response = await fetch(url, options?.init);
+  const response = await fetch(url, {
+    ...options?.init,
+    cache: options?.force ? 'no-store' : options?.init?.cache,
+  });
   if (!response.ok) {
     return null;
   }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { CreditCard, Lock, ArrowLeft, Building2, Radio } from 'lucide-react';
+import { CreditCard, Lock, ArrowLeft, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
@@ -8,7 +8,7 @@ import { Button } from '../../components/Button';
 import { useBooking } from '../../context/BookingContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
-import { showSuccessToast, showPromiseToast } from '../../utils/notificationHelpers';
+import { showSuccessToast } from '../../utils/notificationHelpers';
 
 export const PaymentPage = () => {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export const PaymentPage = () => {
   const { user } = useAuth();
   const { addNotification } = useNotifications();
   const [processing, setProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'onsite'>('online');
+  const [paymentMethod] = useState<'onsite'>('onsite');
   const venueName = typeof appSettings.landing?.venueName === 'string' && appSettings.landing.venueName.trim()
     ? appSettings.landing.venueName.trim()
     : appSettings.courts[0] || '';
@@ -37,8 +37,8 @@ export const PaymentPage = () => {
   const gst = Math.round(subtotal * 0.18);
   const total = subtotal + gst;
 
-  const createBookingRecord = async (method: 'online' | 'onsite') => {
-    const paymentPrefix = method === 'onsite' ? 'ONSITE' : 'PAY';
+  const createBookingRecord = async () => {
+    const paymentPrefix = 'ONSITE';
 
     const booking = await createBooking({
       courtName: venueName,
@@ -47,8 +47,8 @@ export const PaymentPage = () => {
       totalAmount: total,
       status: 'upcoming',
       paymentId: `${paymentPrefix}${Date.now()}`,
-      paymentMethod: method,
-      paymentStatus: method === 'onsite' ? 'pending' : 'paid',
+      paymentMethod: 'onsite',
+      paymentStatus: 'pending',
       userName: user?.name,
       userEmail: user?.email,
       userPhone: user?.phone,
@@ -56,10 +56,8 @@ export const PaymentPage = () => {
 
     addNotification({
       type: 'success',
-      title: method === 'onsite' ? 'Booking Reserved!' : 'Booking Confirmed!',
-      message: method === 'onsite'
-        ? `Your court has been reserved for ${format(new Date(selectedSlots[0].date), 'MMM d, yyyy')}. Pay at the venue to confirm payment. Booking ID: ${booking.id}`
-        : `Your court booking for ${format(new Date(selectedSlots[0].date), 'MMM d, yyyy')} has been confirmed. Booking ID: ${booking.id}`,
+      title: 'Booking Reserved!',
+      message: `Your court has been reserved for ${format(new Date(selectedSlots[0].date), 'MMM d, yyyy')}. Pay at the venue to confirm payment. Booking ID: ${booking.id}`,
       action: {
         label: 'View Booking',
         onClick: () => navigate('/user/history'),
@@ -73,20 +71,8 @@ export const PaymentPage = () => {
     setProcessing(true);
     
     try {
-      if (paymentMethod === 'onsite') {
-        await createBookingRecord('onsite');
-        return;
-      }
-
-      const paymentPromise = new Promise(resolve => setTimeout(resolve, 2000));
-
-      await showPromiseToast(paymentPromise, {
-        loading: 'Processing Payment...',
-        success: 'Payment Successful!',
-        error: 'Payment Failed',
-      });
-
-      await createBookingRecord('online');
+      await createBookingRecord();
+      showSuccessToast('Online payments are temporarily closed. Your booking was reserved for pay-at-venue.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Booking Failed';
       addNotification({
@@ -116,7 +102,7 @@ export const PaymentPage = () => {
 
         <div className="mb-4 md:mb-6">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Payment</h1>
-          <p className="text-sm md:text-base text-gray-600">Complete your booking payment</p>
+          <p className="text-sm md:text-base text-gray-600">Online payments are temporarily closed. Please reserve your slot and pay at the venue.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-4 md:gap-6">
@@ -169,52 +155,24 @@ export const PaymentPage = () => {
                 <CreditCard className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-lg md:text-xl font-semibold">Payment Method</h2>
-                <p className="text-xs md:text-sm text-gray-600">Secured by Razorpay</p>
+                <h2 className="text-lg md:text-xl font-semibold">Pay at Venue</h2>
+                <p className="text-xs md:text-sm text-gray-600">Online payments are temporarily unavailable</p>
               </div>
+            </div>
+
+            <div className="mb-6 rounded-xl border border-yellow-100 bg-yellow-50 p-4 text-sm text-yellow-900">
+              Online checkout is paused for now. Your booking will be reserved for payment at the venue.
             </div>
 
             {/* Payment Method Selection */}
             <div className="space-y-4 mb-6">
               <button
                 type="button"
-                onClick={() => setPaymentMethod('online')}
-                className={`w-full p-3 md:p-4 rounded-xl border-2 text-left transition-all ${paymentMethod === 'online' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                className="w-full p-3 md:p-4 rounded-xl border-2 text-left transition-all border-yellow-700 bg-yellow-50"
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <Radio className={`w-4 h-4 ${paymentMethod === 'online' ? 'text-blue-600' : 'text-gray-400'}`} />
-                    <span className="font-medium text-sm md:text-base">Pay Online</span>
-                  </div>
-                  <Lock className="w-4 h-4 md:w-5 md:h-5 text-yellow-700" />
-                </div>
-                <p className="text-xs md:text-sm text-gray-600 mb-3">
-                  You will be redirected to a secure payment gateway.
-                </p>
-                <div className="flex gap-2">
-                  <div className="w-10 h-7 md:w-12 md:h-8 bg-white rounded shadow-sm flex items-center justify-center">
-                    <span className="text-[10px] md:text-xs font-bold text-blue-600">VISA</span>
-                  </div>
-                  <div className="w-10 h-7 md:w-12 md:h-8 bg-white rounded shadow-sm flex items-center justify-center">
-                    <span className="text-[10px] md:text-xs font-bold text-red-600">MC</span>
-                  </div>
-                  <div className="w-10 h-7 md:w-12 md:h-8 bg-white rounded shadow-sm flex items-center justify-center">
-                    <span className="text-[10px] md:text-xs font-bold text-purple-600">UPI</span>
-                  </div>
-                  <div className="w-10 h-7 md:w-12 md:h-8 bg-white rounded shadow-sm flex items-center justify-center">
-                    <span className="text-[10px] md:text-xs font-bold text-gray-600">NET</span>
-                  </div>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setPaymentMethod('onsite')}
-                className={`w-full p-3 md:p-4 rounded-xl border-2 text-left transition-all ${paymentMethod === 'onsite' ? 'border-yellow-700 bg-yellow-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Building2 className={`w-4 h-4 ${paymentMethod === 'onsite' ? 'text-yellow-800' : 'text-gray-400'}`} />
+                    <Building2 className="w-4 h-4 text-yellow-800" />
                     <span className="font-medium text-sm md:text-base">Pay Onsite</span>
                   </div>
                   <span className="text-xs font-semibold px-2 py-1 rounded-full bg-yellow-100 text-yellow-900">No online payment</span>
@@ -233,7 +191,7 @@ export const PaymentPage = () => {
                 loading={processing}
                 disabled={processing}
               >
-                {processing ? 'Processing Payment...' : paymentMethod === 'onsite' ? `Book Onsite - ₹${total}` : `Pay ₹${total}`}
+                {processing ? 'Booking...' : `Book Onsite - ₹${total}`}
               </Button>
               
               <div className="flex items-center justify-center gap-2 text-xs md:text-sm text-gray-500">
