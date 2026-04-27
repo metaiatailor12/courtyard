@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Bell, X, Check, CheckCheck, Trash2, Info, AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useNotifications } from '../context/NotificationContext';
 import { formatDistanceToNow } from 'date-fns';
@@ -8,53 +8,53 @@ import { createPortal } from 'react-dom';
 export const NotificationCenter = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead, removeNotification, clearAll } = useNotifications();
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement | null>(null); // used for portal/mobile panel
+
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-  const [isMobileView, setIsMobileView] = useState<boolean>(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const [anchorStyle, setAnchorStyle] = useState<React.CSSProperties | null>(null);
+  const [isSmallScreen, setIsSmallScreen] = useState<boolean>(false);
 
-  // Close dropdown when clicking outside
+  // Close when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen]);
-
-  // Close dropdown when clicking outside (handles both desktop and portal/mobile panel)
-  useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      const clickedInsideButton = buttonRef.current?.contains(target);
-      const clickedInsidePanel = panelRef.current?.contains(target) || dropdownRef.current?.contains(target);
-        const [anchorStyle, setAnchorStyle] = useState<React.CSSProperties | null>(null);
-        setIsOpen(false);
-      }
+      if (buttonRef.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setIsOpen(false);
     };
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen]);
 
-  // Track small viewport to switch to bottom-sheet style
+  // Compute anchor position for portal dropdown when opened, and update on resize/scroll
   useEffect(() => {
-    const check = () => setIsMobileView(window.innerWidth < 640);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
+    if (!isOpen) {
+      setAnchorStyle(null);
+      return;
+    }
+    const compute = () => {
+      setIsSmallScreen(window.innerWidth < 640);
+      const btn = buttonRef.current;
+      if (!btn) return setAnchorStyle(null);
+      const rect = btn.getBoundingClientRect();
+      if (window.innerWidth < 640) {
+        // full-width top sheet on small screens to avoid clipping
+        setAnchorStyle({ position: 'fixed', left: 8, right: 8, top: 64, zIndex: 9999 });
+        return;
+      }
+      const right = Math.max(8, window.innerWidth - rect.right);
+      const top = rect.bottom + 8;
+      setAnchorStyle({ position: 'fixed', top: `${top}px`, right: `${right}px`, zIndex: 9999, maxWidth: '24rem' });
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    window.addEventListener('scroll', compute, true);
+    return () => {
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('scroll', compute, true);
+    };
+  }, [isOpen]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -69,38 +69,13 @@ export const NotificationCenter = () => {
     }
   };
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'success':
-        // Compute anchor position for portal dropdown when opened, and update on resize/scroll
-        useEffect(() => {
-          const compute = () => {
-            const btn = buttonRef.current;
-            if (!btn) return setAnchorStyle(null);
-            const rect = btn.getBoundingClientRect();
-            const right = Math.max(8, window.innerWidth - rect.right);
-            const top = rect.bottom + 8;
-            setAnchorStyle({ position: 'fixed', top: `${top}px`, right: `${right}px`, zIndex: 9999 });
-          };
-          if (isOpen) {
-            compute();
-            window.addEventListener('resize', compute);
-            window.addEventListener('scroll', compute, true);
-          }
-          return () => {
-            window.removeEventListener('resize', compute);
-            window.removeEventListener('scroll', compute, true);
-          };
-        }, [isOpen]);
-    }
-  };
-
   return (
-    <div className="relative" ref={dropdownRef}>
-      {/* Notification Bell */}
+    <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={() => setIsOpen((s) => !s)}
         className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+        aria-label="Notifications"
       >
         <Bell className="w-6 h-6 text-gray-700" />
         {unreadCount > 0 && (
@@ -114,133 +89,105 @@ export const NotificationCenter = () => {
         )}
       </button>
 
-      {/* Dropdown Panel */}
-                // Render dropdown via portal and position it near the bell button to avoid ancestor clipping
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute right-0 mt-2 w-[calc(100vw-1rem)] max-w-[24rem] sm:w-96 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 origin-top-right"
-          >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-green-900 to-green-800 p-4 text-white">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-lg">Notifications</h3>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="p-1 hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              {notifications.length > 0 && (
-                <div className="flex gap-2">
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={markAllAsRead}
-                      className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
-                    >
-                      <CheckCheck className="w-3 h-3" />
-                      Mark all read
-                    </button>
-                  )}
-                  <button
-                    onClick={clearAll}
-                    className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Clear all
+      {createPortal(
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              ref={panelRef}
+              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              transition={{ duration: 0.16 }}
+              style={anchorStyle || { position: 'fixed', top: '56px', right: '8px', zIndex: 9999 }}
+              className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden w-[calc(100vw-1rem)] max-w-[24rem] sm:w-96"
+            >
+              <div className="bg-gradient-to-r from-green-900 to-green-800 p-4 text-white">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-lg">Notifications</h3>
+                  <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
-              )}
-            </div>
+                {notifications.length > 0 && (
+                  <div className="flex gap-2">
+                    {unreadCount > 0 && (
+                      <button onClick={markAllAsRead} className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors flex items-center gap-1">
+                        <CheckCheck className="w-3 h-3" />
+                        Mark all read
+                      </button>
+                    )}
+                    <button onClick={clearAll} className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-colors flex items-center gap-1">
+                      <Trash2 className="w-3 h-3" />
+                      Clear all
+                    </button>
+                  </div>
+                )}
+              </div>
 
-            {/* Notifications List */}
-            <div className="max-h-[70vh] sm:max-h-[500px] overflow-y-auto">
-              {notifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p className="text-sm">No notifications yet</p>
-                  <p className="text-xs mt-1">We'll notify you when something happens</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {notifications.map((notification) => (
-                    <motion.div
-                      key={notification.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className={`p-4 hover:bg-gray-50 transition-colors ${
-                        !notification.read ? 'bg-green-50/30' : ''
-                      }`}
-                    >
-                      <div className="flex gap-3">
-                        {/* Icon */}
-                        <div className="flex-shrink-0 mt-1">
-                          {getIcon(notification.type)}
-                        </div>
+              <div className="max-h-[70vh] sm:max-h-[500px] overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-8 text-center text-gray-500">
+                    <Bell className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p className="text-sm">No notifications yet</p>
+                    <p className="text-xs mt-1">We'll notify you when something happens</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {notifications.map((notification) => (
+                      <motion.div
+                        key={notification.id}
+                        initial={{ opacity: 0, x: -12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 12 }}
+                        className={`p-4 hover:bg-gray-50 transition-colors ${!notification.read ? 'bg-green-50/30' : ''}`}
+                      >
+                        <div className="flex gap-3">
+                          <div className="flex-shrink-0 mt-1">{getIcon(notification.type)}</div>
 
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <h4 className="font-semibold text-sm text-gray-800 truncate">
-                              {notification.title}
-                            </h4>
-                            {!notification.read && (
-                              <div className="w-2 h-2 bg-green-900 rounded-full flex-shrink-0 mt-1.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <h4 className="font-semibold text-sm text-gray-800 truncate">{notification.title}</h4>
+                              {!notification.read && <div className="w-2 h-2 bg-green-900 rounded-full flex-shrink-0 mt-1.5" />}
+                            </div>
+                            <p className="text-xs text-gray-600 mb-2 line-clamp-2">{notification.message}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-gray-400">{formatDistanceToNow(notification.timestamp, { addSuffix: true })}</span>
+                              <div className="flex gap-2">
+                                {!notification.read && (
+                                  <button onClick={() => markAsRead(notification.id)} className="text-xs text-green-900 hover:text-green-950 font-medium">
+                                    <Check className="w-4 h-4" />
+                                  </button>
+                                )}
+                                <button onClick={() => removeNotification(notification.id)} className="text-xs text-gray-400 hover:text-red-500">
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+
+                            {notification.action?.label && typeof notification.action.onClick === 'function' && (
+                              <button
+                                onClick={() => {
+                                  notification.action?.onClick?.();
+                                  markAsRead(notification.id);
+                                  setIsOpen(false);
+                                }}
+                                className="mt-2 text-xs bg-green-900 hover:bg-green-950 text-white px-3 py-1 rounded-lg transition-colors"
+                              >
+                                {notification.action.label}
+                              </button>
                             )}
                           </div>
-                          <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                            {notification.message}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-400">
-                              {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
-                            </span>
-                            <div className="flex gap-2">
-                              {!notification.read && (
-                                <button
-                                  onClick={() => markAsRead(notification.id)}
-                                  className="text-xs text-green-900 hover:text-green-950 font-medium"
-                                >
-                                  <Check className="w-4 h-4" />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => removeNotification(notification.id)}
-                                className="text-xs text-gray-400 hover:text-red-500"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                          {notification.action?.label && typeof notification.action.onClick === 'function' && (
-                            <button
-                              onClick={() => {
-                                notification.action?.onClick?.();
-                                markAsRead(notification.id);
-                                setIsOpen(false);
-                              }}
-                              className="mt-2 text-xs bg-green-900 hover:bg-green-950 text-white px-3 py-1 rounded-lg transition-colors"
-                            >
-                              {notification.action.label}
-                            </button>
-                          )}
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };
-
-
