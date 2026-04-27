@@ -18,6 +18,47 @@ const formatHourLabel = (hour: number) => {
   return `${displayHour}:00 ${period}`;
 };
 
+const parseSlotStartMinutes = (timeRange: string): number | null => {
+  const [start] = timeRange.split(' - ').map(part => part.trim());
+  const match = start.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+
+  if (!match) {
+    return null;
+  }
+
+  let hour = Number(match[1]) % 12;
+  const minutes = Number(match[2]);
+  const period = match[3].toUpperCase();
+
+  if (period === 'PM') {
+    hour += 12;
+  }
+
+  return (hour * 60) + minutes;
+};
+
+const isPastTimeSlot = (slot: TimeSlot): boolean => {
+  const now = new Date();
+  const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const slotDate = new Date(`${slot.date}T00:00:00`);
+
+  if (slotDate < nowDate) {
+    return true;
+  }
+
+  if (slotDate > nowDate) {
+    return false;
+  }
+
+  const slotStartMinutes = parseSlotStartMinutes(slot.time);
+  if (slotStartMinutes === null) {
+    return false;
+  }
+
+  const nowMinutes = (now.getHours() * 60) + now.getMinutes();
+  return slotStartMinutes <= nowMinutes;
+};
+
 // Generate time slots from 5 AM to 11 PM
 const generateTimeSlots = (
   date: Date,
@@ -100,6 +141,7 @@ export const BookingPage = () => {
   }, [selectedDate, selectedCourt]);
 
   const handleSlotClick = (slot: TimeSlot) => {
+    if (isPastTimeSlot(slot)) return;
     if (isSlotBooked(slot.date, slot.court, slot.time)) return;
     
     const isSelected = selectedSlots.find(s => s.id === slot.id);
@@ -352,13 +394,14 @@ export const BookingPage = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
                   {timeSlots.map((slot) => {
                     const selected = isSlotSelected(slot.id);
+                    const pastSlot = isPastTimeSlot(slot);
                     const serverBooked = serverAvailability.some(serverSlot => (
                       serverSlot.date === slot.date
                       && serverSlot.court === slot.court
                       && serverSlot.time === slot.time
                       && serverSlot.status === 'booked'
                     ));
-                    const booked = serverBooked || isSlotBooked(slot.date, slot.court, slot.time);
+                    const booked = pastSlot || serverBooked || isSlotBooked(slot.date, slot.court, slot.time);
                     
                     return (
                       <button
@@ -374,7 +417,7 @@ export const BookingPage = () => {
                         }`}
                       >
                         <p className="font-semibold text-xs sm:text-sm">{slot.time}</p>
-                        {booked && <p className="text-[10px] sm:text-xs mt-0.5">Booked</p>}
+                        {booked && <p className="text-[10px] sm:text-xs mt-0.5">{pastSlot ? 'Past' : 'Booked'}</p>}
                       </button>
                     );
                   })}

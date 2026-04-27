@@ -36,6 +36,7 @@ const { uploadGalleryImage } = require('./cloudinary');
 const {
 	sendVerificationEmail,
 	sendBookingConfirmationEmail,
+	sendAdminBookingAlertEmail,
 	sendBookingCancellationEmail,
 	sendSubscriptionConfirmationEmail,
 } = require('./emailService');
@@ -136,6 +137,16 @@ async function sendBookingCancellationIfPossible(booking) {
 		return true;
 	} catch (error) {
 		console.error('Booking was cancelled, but cancellation email failed:', error);
+		return false;
+	}
+}
+
+async function sendAdminBookingAlertIfPossible(booking) {
+	try {
+		await sendAdminBookingAlertEmail(booking);
+		return true;
+	} catch (error) {
+		console.error('Booking was created, but admin alert email failed:', error);
 		return false;
 	}
 }
@@ -293,9 +304,12 @@ router.post('/bookings', requireAuth, asyncHandler(async (req, res) => {
 		userEmail: req.body?.userEmail || req.auth.email,
 		userPhone: req.body?.userPhone || null,
 	});
-	const confirmationEmailSent = await sendBookingConfirmationIfPossible(booking);
+	const [confirmationEmailSent, adminAlertEmailSent] = await Promise.all([
+		sendBookingConfirmationIfPossible(booking),
+		sendAdminBookingAlertIfPossible(booking),
+	]);
 
-	res.status(201).json({ booking: { ...booking, confirmationEmailSent } });
+	res.status(201).json({ booking: { ...booking, confirmationEmailSent, adminAlertEmailSent } });
 }));
 
 router.delete('/bookings/:bookingId', requireAuth, asyncHandler(async (req, res) => {
@@ -374,9 +388,12 @@ router.post('/admin/bookings', requireAuth, requireRole('admin'), asyncHandler(a
 		userEmail: req.body?.userEmail || req.auth.email,
 		userPhone: req.body?.userPhone || null,
 	});
-	const confirmationEmailSent = await sendBookingConfirmationIfPossible(booking);
+	const [confirmationEmailSent, adminAlertEmailSent] = await Promise.all([
+		sendBookingConfirmationIfPossible(booking),
+		sendAdminBookingAlertIfPossible(booking),
+	]);
 
-	res.status(201).json({ booking: { ...booking, confirmationEmailSent } });
+	res.status(201).json({ booking: { ...booking, confirmationEmailSent, adminAlertEmailSent } });
 }));
 
 router.delete('/admin/bookings/:bookingId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {

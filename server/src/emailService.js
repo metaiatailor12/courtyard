@@ -206,6 +206,97 @@ ${slotText}
   }
 }
 
+async function sendAdminBookingAlertEmail(booking) {
+  try {
+    if (!transporter) {
+      throw new Error('Email service is not configured');
+    }
+
+    const adminEmail = String(env.gmailAdminEmail || '').trim().toLowerCase();
+    if (!adminEmail) {
+      throw new Error('Admin email is not configured');
+    }
+
+    const slots = Array.isArray(booking.slots) ? booking.slots : [];
+    const slotRows = slots.length
+      ? slots.map(slot => `
+          <tr>
+            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">Court ${escapeHtml(slot.court)}</td>
+            <td style="padding: 8px; border-bottom: 1px solid #e5e7eb;">${escapeHtml(slot.time)}</td>
+          </tr>
+        `).join('')
+      : '<tr><td colspan="2" style="padding: 8px;">No slots listed</td></tr>';
+
+    const slotText = slots.length
+      ? slots.map(slot => `Court ${slot.court}: ${slot.time}`).join('\n')
+      : 'No slots listed';
+
+    const mailOptions = {
+      from: `"Courtyard" <${env.gmailAdminEmail}>`,
+      to: adminEmail,
+      subject: `New Booking Received - ${booking.id}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; color: #111827;">
+          <div style="background-color: #064e3b; color: #ffffff; padding: 24px; text-align: center;">
+            <h1 style="margin: 0; font-size: 24px;">New Booking Received</h1>
+            <p style="margin: 8px 0 0;">A new booking has been created in Courtyard.</p>
+          </div>
+          <div style="padding: 24px; background-color: #ffffff;">
+            <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+              <tr><td style="padding: 8px; color: #4b5563;">Booking ID</td><td style="padding: 8px; font-weight: bold;">${escapeHtml(booking.id)}</td></tr>
+              <tr><td style="padding: 8px; color: #4b5563;">Source</td><td style="padding: 8px; font-weight: bold;">${escapeHtml(booking.source || 'user-app')}</td></tr>
+              <tr><td style="padding: 8px; color: #4b5563;">Customer Name</td><td style="padding: 8px; font-weight: bold;">${escapeHtml(booking.userName || 'Not provided')}</td></tr>
+              <tr><td style="padding: 8px; color: #4b5563;">Customer Email</td><td style="padding: 8px; font-weight: bold;">${escapeHtml(booking.userEmail || 'Not provided')}</td></tr>
+              <tr><td style="padding: 8px; color: #4b5563;">Customer Phone</td><td style="padding: 8px; font-weight: bold;">${escapeHtml(booking.userPhone || 'Not provided')}</td></tr>
+              <tr><td style="padding: 8px; color: #4b5563;">Court</td><td style="padding: 8px; font-weight: bold;">${escapeHtml(booking.courtName)}</td></tr>
+              <tr><td style="padding: 8px; color: #4b5563;">Date</td><td style="padding: 8px; font-weight: bold;">${escapeHtml(formatBookingDate(booking.date))}</td></tr>
+              <tr><td style="padding: 8px; color: #4b5563;">Payment ID</td><td style="padding: 8px; font-weight: bold;">${escapeHtml(booking.paymentId || 'Not available')}</td></tr>
+              <tr><td style="padding: 8px; color: #4b5563;">Payment Method</td><td style="padding: 8px; font-weight: bold;">${escapeHtml(booking.paymentMethod || 'online')}</td></tr>
+              <tr><td style="padding: 8px; color: #4b5563;">Payment Status</td><td style="padding: 8px; font-weight: bold;">${escapeHtml(booking.paymentStatus || 'paid')}</td></tr>
+              <tr><td style="padding: 8px; color: #4b5563;">Total Amount</td><td style="padding: 8px; font-weight: bold;">INR ${escapeHtml(booking.totalAmount)}</td></tr>
+            </table>
+            <h2 style="font-size: 18px; margin: 20px 0 8px;">Booked Slots</h2>
+            <table style="width: 100%; border-collapse: collapse; background-color: #f9fafb;">
+              <thead>
+                <tr>
+                  <th style="text-align: left; padding: 8px; border-bottom: 1px solid #d1d5db;">Court</th>
+                  <th style="text-align: left; padding: 8px; border-bottom: 1px solid #d1d5db;">Time</th>
+                </tr>
+              </thead>
+              <tbody>${slotRows}</tbody>
+            </table>
+          </div>
+        </div>
+      `,
+      text: `
+New Booking Received
+
+Booking ID: ${booking.id}
+Source: ${booking.source || 'user-app'}
+Customer Name: ${booking.userName || 'Not provided'}
+Customer Email: ${booking.userEmail || 'Not provided'}
+Customer Phone: ${booking.userPhone || 'Not provided'}
+Court: ${booking.courtName}
+Date: ${formatBookingDate(booking.date)}
+Payment ID: ${booking.paymentId || 'Not available'}
+Payment Method: ${booking.paymentMethod || 'online'}
+Payment Status: ${booking.paymentStatus || 'paid'}
+Total Amount: INR ${booking.totalAmount}
+
+Booked Slots:
+${slotText}
+      `,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Admin booking alert email sent:', info.response);
+    return true;
+  } catch (error) {
+    console.error('Failed to send admin booking alert email:', error);
+    throw error;
+  }
+}
+
 async function sendSubscriptionConfirmationEmail(recipientEmail, subscription) {
   try {
     if (!transporter) {
@@ -359,6 +450,7 @@ module.exports = {
   initializeEmailService,
   sendVerificationEmail,
   sendBookingConfirmationEmail,
+  sendAdminBookingAlertEmail,
   sendBookingCancellationEmail,
   sendSubscriptionConfirmationEmail,
 };

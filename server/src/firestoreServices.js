@@ -520,6 +520,32 @@ function mapSubscriptionDoc(doc) {
   };
 }
 
+function getCurrentUtcSlotContext(now = new Date()) {
+  return {
+    dateKey: toUtcDateKey(now),
+    minutes: (now.getUTCHours() * 60) + now.getUTCMinutes(),
+  };
+}
+
+function isPastOrCurrentSlot(dateKey, slotTimeKey, currentContext = getCurrentUtcSlotContext()) {
+  const [startMinutesRaw] = String(slotTimeKey).split('-');
+  const startMinutes = Number(startMinutesRaw);
+
+  if (!Number.isFinite(startMinutes)) {
+    return false;
+  }
+
+  if (dateKey < currentContext.dateKey) {
+    return true;
+  }
+
+  if (dateKey > currentContext.dateKey) {
+    return false;
+  }
+
+  return startMinutes <= currentContext.minutes;
+}
+
 function normalizeBookingSlot(slot, fallbackDate) {
   const dateKey = toUtcDateKey(slot.date || fallbackDate);
   const normalizedTimeKey = normalizeTimeRange(slot.time || slot.slotTime || '');
@@ -605,16 +631,29 @@ async function getAvailability(date, court) {
     }
   }
 
-  return allSlots.map(slot => ({
-    ...slot,
-    status: blockedKeys.has(normalizeTimeRange(slot.time)) ? 'booked' : 'available',
-  }));
+  const currentContext = getCurrentUtcSlotContext();
+
+  return allSlots.map(slot => {
+    const slotTimeKey = normalizeTimeRange(slot.time);
+    const isPastSlot = slotTimeKey ? isPastOrCurrentSlot(slot.date, slotTimeKey, currentContext) : false;
+
+    return {
+      ...slot,
+      status: blockedKeys.has(slotTimeKey) || isPastSlot ? 'booked' : 'available',
+    };
+  });
 }
 
 async function assertNoSlotConflicts(slots) {
   const requestedKeys = new Set();
   const bookedDates = new Map();
+  const currentContext = getCurrentUtcSlotContext();
+
   for (const slot of slots) {
+    if (isPastOrCurrentSlot(slot.date, slot.slotTimeKey, currentContext)) {
+      throw new ApiError(400, `Slot ${slot.slotTime} on ${slot.date} is in the past. Please choose a future time slot.`);
+    }
+
     const requestKey = `${slot.date}|${slot.court}|${slot.slotTimeKey}`;
     if (requestedKeys.has(requestKey)) {
       throw new ApiError(400, `Duplicate slot selected for ${slot.slotTime} on ${slot.date}`);
