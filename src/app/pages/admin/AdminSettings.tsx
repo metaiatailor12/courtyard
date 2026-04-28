@@ -109,34 +109,46 @@ export const AdminSettings = () => {
   };
 
   const handleSavePricing = async () => {
-    await saveSettings({
-      pricing: {
-        offPeak: pricing.weekdayPrice,
-        peak: pricing.weekendPrice,
-        subscription: pricing.monthlySubscription,
-      },
-    });
+    try {
+      await saveSettings({
+        pricing: {
+          offPeak: pricing.weekdayPrice,
+          peak: pricing.weekendPrice,
+          subscription: pricing.monthlySubscription,
+        },
+      });
 
-    setSaved(true);
-    showSuccessToast('Pricing updated successfully!');
-    setTimeout(() => setSaved(false), 2000);
+      setSaved(true);
+      showSuccessToast('Pricing updated successfully!');
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to save pricing';
+      showErrorToast('Save failed', message);
+      console.error('Failed to save pricing', error);
+    }
   };
 
   const handleSaveDetails = async () => {
-    await saveSettings({
-      landing: {
-        venueName: courtDetails.name,
-        venueAddress: courtDetails.address,
-        venuePhone: courtDetails.phone,
-        venueEmail: courtDetails.email,
-        venueOperatingHoursText: courtDetails.operatingHours,
-        venueRating: courtDetails.rating,
-      },
-    });
+    try {
+      await saveSettings({
+        landing: {
+          venueName: courtDetails.name,
+          venueAddress: courtDetails.address,
+          venuePhone: courtDetails.phone,
+          venueEmail: courtDetails.email,
+          venueOperatingHoursText: courtDetails.operatingHours,
+          venueRating: courtDetails.rating,
+        },
+      });
 
-    setSaved(true);
-    showSuccessToast('Court details updated successfully!');
-    setTimeout(() => setSaved(false), 2000);
+      setSaved(true);
+      showSuccessToast('Court details updated successfully!');
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to save court details';
+      showErrorToast('Save failed', message);
+      console.error('Failed to save court details', error);
+    }
   };
 
   // Landing page handlers
