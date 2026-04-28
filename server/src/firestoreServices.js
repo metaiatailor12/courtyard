@@ -646,6 +646,29 @@ function isPastOrCurrentSlot(dateKey, slotTimeKey, currentContext = getCurrentUt
   return startMinutes <= currentContext.minutes;
 }
 
+function getSlotStartHour(slotTimeKey) {
+  const [startMinutesRaw] = String(slotTimeKey).split('-');
+  const startMinutes = Number(startMinutesRaw);
+
+  if (!Number.isFinite(startMinutes) || startMinutes < 0) {
+    return null;
+  }
+
+  return Math.floor(startMinutes / 60);
+}
+
+function getCanonicalSlotPrice(dateKey, slotTimeKey, pricing = {}) {
+  const peak = Number(pricing.peak || 0);
+  const offPeak = Number(pricing.offPeak || 0);
+
+  // Weekend slots use weekend/peak pricing for the whole day.
+  if (!isWeekday(dateKey)) {
+    return peak;
+  }
+
+  return offPeak;
+}
+
 function normalizeBookingSlot(slot, fallbackDate) {
   const dateKey = toUtcDateKey(slot.date || fallbackDate);
   const normalizedTimeKey = normalizeTimeRange(slot.time || slot.slotTime || '');
@@ -805,8 +828,14 @@ async function createBookingRecord({ userId, userName, userEmail, userPhone, cou
   const db = getDb();
   const dateKey = toUtcDateKey(date);
   const normalizedSlots = slots.map(slot => normalizeBookingSlot(slot, dateKey));
+  const settings = await getAppSettings();
+  const canonicalSlots = normalizedSlots.map(slot => ({
+    ...slot,
+    price: getCanonicalSlotPrice(slot.date, slot.slotTimeKey, settings.pricing),
+  }));
+  const canonicalTotalAmount = canonicalSlots.reduce((sum, slot) => sum + Number(slot.price || 0), 0);
 
-  await assertNoSlotConflicts(normalizedSlots);
+  await assertNoSlotConflicts(canonicalSlots);
 
   if (idempotencyKey) {
     const existingQuery = await db.collection('bookings')
@@ -827,7 +856,7 @@ async function createBookingRecord({ userId, userName, userEmail, userPhone, cou
     userId,
     courtName,
     date: dateKey,
-    totalAmount: Number(totalAmount),
+    totalAmount: canonicalTotalAmount,
     status,
     paymentId: paymentId || null,
     paymentMethod: paymentId?.startsWith('ONSITE-') ? 'onsite' : 'online',
@@ -842,12 +871,12 @@ async function createBookingRecord({ userId, userName, userEmail, userPhone, cou
   };
 
   await db.runTransaction(async (transaction) => {
-    const slotRefs = normalizedSlots.map(slot => db.collection('booking_slots').doc(slot.slotId));
+    const slotRefs = canonicalSlots.map(slot => db.collection('booking_slots').doc(slot.slotId));
     const existingBySlotId = new Map();
 
     // Firestore transactions require all reads to happen before writes.
-    for (let index = 0; index < normalizedSlots.length; index += 1) {
-      const slot = normalizedSlots[index];
+    for (let index = 0; index < canonicalSlots.length; index += 1) {
+      const slot = canonicalSlots[index];
       const slotRef = slotRefs[index];
       const slotSnapshot = await transaction.get(slotRef);
       const existingSlot = slotSnapshot.exists ? slotSnapshot.data() || {} : null;
@@ -861,8 +890,8 @@ async function createBookingRecord({ userId, userName, userEmail, userPhone, cou
 
     transaction.set(bookingRef, bookingPayload);
 
-    for (let index = 0; index < normalizedSlots.length; index += 1) {
-      const slot = normalizedSlots[index];
+    for (let index = 0; index < canonicalSlots.length; index += 1) {
+      const slot = canonicalSlots[index];
       const slotRef = slotRefs[index];
       const existingSlot = existingBySlotId.get(slot.slotId);
       const slotPayload = {
@@ -883,7 +912,7 @@ async function createBookingRecord({ userId, userName, userEmail, userPhone, cou
     }
   });
 
-  const slotDocs = normalizedSlots.map(slot => ({
+  const slotDocs = canonicalSlots.map(slot => ({
     id: slot.slotId,
     bookingId: bookingRef.id,
     ...slot,
@@ -991,6 +1020,7 @@ async function createSubscriptionRecord({ userId, userName, userEmail, userPhone
   }
 
   const timeKey = normalizeTimeRange(timeSlot);
+  const settings = await getAppSettings();
   const weekdayDates = getSubscriptionWeekdays(normalizedStart, normalizedEnd);
   const courtNumber = Number(court);
   const bookedSlotSnapshots = await Promise.all(weekdayDates.map(dateKey => db.collection('booking_slots').where('date', '==', dateKey).get()));
@@ -1025,6 +1055,7 @@ async function createSubscriptionRecord({ userId, userName, userEmail, userPhone
   }
 
   const now = new Date();
+  const canonicalSubscriptionAmount = Number(settings?.pricing?.subscription || amount || 0);
   const payload = {
     userId,
     courtName,
@@ -1034,7 +1065,7 @@ async function createSubscriptionRecord({ userId, userName, userEmail, userPhone
     startDate: normalizedStart,
     endDate: normalizedEnd,
     weekdaysCount: Number(weekdaysCount),
-    amount: Number(amount),
+    amount: canonicalSubscriptionAmount,
     status,
     paymentId: paymentId || null,
     paymentMethod: paymentId?.startsWith('ONSITE-') ? 'onsite' : 'online',

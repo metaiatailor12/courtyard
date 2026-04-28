@@ -7,7 +7,7 @@ export const getApiBaseUrl = () => {
     ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
 
   if (isLocalhost) {
-    return rawBaseUrl || '/api';
+    return '/api';
   }
 
   if (!rawBaseUrl || rawBaseUrl === '/api') {

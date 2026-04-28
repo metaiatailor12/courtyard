@@ -3,6 +3,7 @@ import { X, Calendar, Clock } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { getAPI_BASE_URL } from '../../lib/apiConfig';
+import { useBooking } from '../../context/BookingContext';
 
 interface CreateBookingModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const CreateBookingModal = ({
   existingBookings = [],
   existingSubscriptions = [],
 }: CreateBookingModalProps) => {
+  const { appSettings } = useBooking();
   const [formData, setFormData] = useState({
     userName: '',
     userEmail: '',
@@ -229,8 +231,10 @@ export const CreateBookingModal = ({
       return;
     }
 
-    // Calculate amount (mock pricing)
-    const slotPrice = 500;
+    const selectedDate = new Date(`${normalizedDate}T12:00:00`);
+    const slotPrice = selectedDate.getDay() === 0 || selectedDate.getDay() === 6
+      ? Number(appSettings.pricing.peak || 0)
+      : Number(appSettings.pricing.offPeak || 0);
     const subtotal = formData.timeSlots.length * slotPrice;
     const totalAmount = subtotal;
 

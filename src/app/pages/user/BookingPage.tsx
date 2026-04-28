@@ -74,8 +74,7 @@ const generateTimeSlots = (
   for (let hour = operatingHours.startHour; hour <= operatingHours.endHour; hour++) {
     const slotId = `${dateStr}-${hour}-${court}`;
     const time = `${formatHourLabel(hour)} - ${formatHourLabel(hour + 1)}`;
-    const isPeakWindow = hour >= 17 && hour <= 21;
-    const price = isWeekend || isPeakWindow ? pricing.peak : pricing.offPeak;
+    const price = isWeekend ? pricing.peak : pricing.offPeak;
     
     slots.push({
       id: slotId,
@@ -114,7 +113,9 @@ export const BookingPage = () => {
     const loadAvailability = async () => {
       try {
         const date = selectedDate.toISOString().split('T')[0];
-        const response = await fetch(`${getAPI_BASE_URL()}/availability?date=${date}&court=${selectedCourt}`);
+        const response = await fetch(`${getAPI_BASE_URL()}/availability?date=${date}&court=${selectedCourt}`, {
+          cache: 'no-store',
+        });
 
         if (!response.ok) {
           return;
@@ -393,20 +394,25 @@ export const BookingPage = () => {
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3">
                   {timeSlots.map((slot) => {
-                    const selected = isSlotSelected(slot.id);
-                    const pastSlot = isPastTimeSlot(slot);
-                    const serverBooked = serverAvailability.some(serverSlot => (
+                    const matchingServerSlot = serverAvailability.find(serverSlot => (
                       serverSlot.date === slot.date
                       && serverSlot.court === slot.court
                       && serverSlot.time === slot.time
-                      && serverSlot.status === 'booked'
                     ));
+                    const effectiveSlot: TimeSlot = {
+                      ...slot,
+                      price: typeof matchingServerSlot?.price === 'number' ? matchingServerSlot.price : slot.price,
+                      status: matchingServerSlot?.status || slot.status,
+                    };
+                    const selected = isSlotSelected(slot.id);
+                    const pastSlot = isPastTimeSlot(slot);
+                    const serverBooked = matchingServerSlot?.status === 'booked';
                     const booked = pastSlot || serverBooked || isSlotBooked(slot.date, slot.court, slot.time);
                     
                     return (
                       <button
                         key={slot.id}
-                        onClick={() => handleSlotClick(slot)}
+                        onClick={() => handleSlotClick(effectiveSlot)}
                         disabled={booked}
                         className={`px-2 py-2 md:px-3 md:py-2 rounded-full border-2 transition-all text-xs sm:text-sm font-medium ${
                           booked

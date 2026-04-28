@@ -78,12 +78,8 @@ function getTimeRangeFromHour(hour) {
   return `${formatHour(hour)} - ${formatHour(hour + 1)}`;
 }
 
-function isPeakHour(hour) {
-  return hour >= 17 && hour <= 21;
-}
-
-function getSlotPrice(hour, pricing) {
-  if (isPeakHour(hour)) {
+function getSlotPrice(dateKey, hour, pricing) {
+  if (!isWeekday(dateKey)) {
     return pricing.peak;
   }
 
@@ -103,7 +99,7 @@ function buildDailySlots(dateKey, court, pricing, startHour = 5, endHour = 22) {
       date: dateKey,
       court,
       time: getTimeRangeFromHour(hour),
-      price: getSlotPrice(hour, pricing),
+      price: getSlotPrice(dateKey, hour, pricing),
       status: 'available',
     });
   }
