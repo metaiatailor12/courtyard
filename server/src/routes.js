@@ -46,6 +46,9 @@ const { generateJWTVerificationToken, getTokenExpiryTime } = require('./tokenUti
 
 const router = express.Router();
 
+const { getAuth } = require('./firebase');
+const { sendPasswordResetEmail } = require('./emailService');
+
 async function resolveAdminTargetUserId(req) {
 	const body = req.body || {};
 	const explicitUserId = typeof body.userId === 'string' ? body.userId.trim() : '';
@@ -112,6 +115,35 @@ async function sendEmailVerificationLink(req, res) {
 
 router.post('/auth/verify-email-send', asyncHandler(sendEmailVerificationLink));
 router.post('/auth/resend-verification-email', asyncHandler(sendEmailVerificationLink));
+
+router.post('/auth/password-reset', asyncHandler(async (req, res) => {
+	const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+	if (!email) {
+		throw new ApiError(400, 'email is required');
+	}
+
+	const clientOrigin = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+	const actionCodeSettings = { url: `${clientOrigin}/login`, handleCodeInApp: true };
+
+	try {
+		const authAdmin = getAuth();
+		const resetLink = await authAdmin.generatePasswordResetLink(email, actionCodeSettings);
+
+		// Try to send using server email service; if not configured, return a clear error so
+		// the frontend can fallback to Firebase client SDK if desired.
+		try {
+			await sendPasswordResetEmail(email, resetLink);
+			res.json({ message: 'Password reset email sent' });
+			return;
+		} catch (sendErr) {
+			console.error('Server email send failed for password reset:', sendErr);
+			throw new ApiError(503, 'Server email service is not configured or failed to send');
+		}
+	} catch (error) {
+		console.error('Failed to generate or send password reset link:', error);
+		throw new ApiError(500, 'Failed to process password reset request');
+	}
+}));
 
 async function sendBookingConfirmationIfPossible(booking) {
 	const recipientEmail = typeof booking?.userEmail === 'string' ? booking.userEmail.trim().toLowerCase() : '';

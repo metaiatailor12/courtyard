@@ -341,13 +341,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const requestPasswordReset = async (email: string, role: 'user' | 'admin') => {
-    if (!isFirebaseConfigured || !auth) {
-      throw new Error('Firebase auth is not configured');
-    }
-
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
       throw new Error('Email is required');
+    }
+
+    // Try backend first — server will generate the admin password reset link and send via SMTP
+    try {
+      const response = await fetch(`${getAPI_BASE_URL()}/auth/password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail }),
+        cache: 'no-store',
+      });
+
+      if (response.ok) {
+        return;
+      }
+      // If server returned a service-unavailable or other error, fall back to client Firebase
+    } catch {
+      // network or server unreachable — fall back to Firebase client
+    }
+
+    if (!isFirebaseConfigured || !auth) {
+      throw new Error('Password reset is not available');
     }
 
     try {
