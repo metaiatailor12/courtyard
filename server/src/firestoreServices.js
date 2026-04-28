@@ -1562,7 +1562,33 @@ async function updateBooking(user, bookingId, updates = {}) {
   return { ...booking, ...allowedUpdates, updatedAt: now.toISOString() };
 }
 
+async function seedDefaultSettings() {
+  const db = getDb();
+  const settingsRef = db.collection('settings').doc('default');
+  const settingsDoc = await settingsRef.get();
+
+  // Only seed if document doesn't exist
+  if (!settingsDoc.exists) {
+    await settingsRef.set({
+      ...DEFAULT_SETTINGS,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    console.log('[firestore] Seeded default settings');
+  }
+
+  // Also seed site assets if they don't exist
+  const assetsRef = db.collection(SITE_ASSETS_COLLECTION).doc('default');
+  const assetsDoc = await assetsRef.get();
+
+  if (!assetsDoc.exists) {
+    await assetsRef.set(DEFAULT_SITE_ASSETS);
+    console.log('[firestore] Seeded site assets');
+  }
+}
+
 module.exports = {
+  seedDefaultSettings,
   getAppSettings,
   updateAppSettings,
   getGalleryImages,

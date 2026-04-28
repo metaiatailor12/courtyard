@@ -9,6 +9,7 @@ const router = require('./routes');
 const { notFound, errorHandler } = require('./middleware');
 const { expireSubscriptions } = require('./services');
 const { ensureSeedAdminUser } = require('./firebase');
+const { seedDefaultSettings } = require('./firestoreServices');
 const { initializeEmailService } = require('./emailService');
 
 const app = express();
@@ -41,6 +42,7 @@ app.use(errorHandler);
 async function start() {
   await connectDatabase();
   await ensureSeedAdminUser();
+  await seedDefaultSettings();
   initializeEmailService();
 
   cron.schedule('5 0 * * *', async () => {
