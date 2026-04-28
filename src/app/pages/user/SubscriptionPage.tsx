@@ -1,19 +1,20 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Calendar as CalendarIcon, Clock, MapPin, CreditCard, CheckCircle, AlertCircle, CalendarDays, Building2 } from 'lucide-react';
 import { format, addDays, isWeekend, eachDayOfInterval, parse } from 'date-fns';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
+import { DatePickerField } from '../../components/DatePickerField';
 import { useAuth } from '../../context/AuthContext';
 import { useBooking } from '../../context/BookingContext';
-import { Input } from '../../components/Input';
 import { showSuccessToast, showErrorToast } from '../../utils/notificationHelpers';
 
 export const SubscriptionPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { appSettings, createSubscription, isSlotBooked } = useBooking();
+  const bookingDisabled = Boolean(appSettings.bookingDisabled);
   const [step, setStep] = useState(1);
   const [startDate, setStartDate] = useState('');
   const [selectedCourt, setSelectedCourt] = useState('');
@@ -86,8 +87,13 @@ export const SubscriptionPage = () => {
     return subscriptionDates.some(date => isSlotBooked(date, selectedCourtNumber, slot));
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  useEffect(() => {
+    if (selectedTimeSlot && isSelectedSlotUnavailable(selectedTimeSlot)) {
+      setSelectedTimeSlot('');
+    }
+  }, [selectedCourtNumber, selectedTimeSlot, startDate, subscriptionDates]);
+
+  const handleDateChange = (value: string) => {
     setDateError('');
     
     if (!value) {
@@ -113,6 +119,11 @@ export const SubscriptionPage = () => {
   };
 
   const handleSubscribe = async () => {
+    if (bookingDisabled) {
+      showErrorToast('Bookings paused', 'Bookings are temporarily paused by the admin.');
+      return;
+    }
+
     if (!user) {
       navigate('/user/login');
       return;
@@ -177,6 +188,12 @@ export const SubscriptionPage = () => {
           <p className="text-sm md:text-base text-gray-600">Online payments are temporarily closed. Subscribe and pay at the venue.</p>
         </div>
 
+        {bookingDisabled && (
+          <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
+            Bookings are currently paused by the admin. Customers cannot create new subscriptions right now.
+          </div>
+        )}
+
         {/* Progress Steps */}
         <div className="mb-6 md:mb-8">
           <div className="flex items-center justify-center gap-4">
@@ -223,15 +240,13 @@ export const SubscriptionPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date (Weekday Only)
-                </label>
-                <Input
-                  type="date"
+                <DatePickerField
+                  label="Start Date (Weekday Only)"
                   value={startDate}
                   onChange={handleDateChange}
-                  min={format(new Date(), 'yyyy-MM-dd')}
+                  minDate={format(new Date(), 'yyyy-MM-dd')}
                   required
+                  placeholder="Select start date"
                 />
                 {dateError && <p className="text-red-500 text-sm mt-1">{dateError}</p>}
               </div>
@@ -263,7 +278,7 @@ export const SubscriptionPage = () => {
                 variant="primary"
                 className="w-full"
                 onClick={() => setStep(2)}
-                disabled={!startDate}
+                disabled={!startDate || bookingDisabled}
               >
                 Continue to Court Selection
               </Button>
@@ -314,7 +329,11 @@ export const SubscriptionPage = () => {
                   {timeSlots.map((slot) => (
                     <button
                       key={slot}
-                      onClick={() => setSelectedTimeSlot(slot)}
+                      onClick={() => {
+                        if (!isSelectedSlotUnavailable(slot)) {
+                          setSelectedTimeSlot(slot);
+                        }
+                      }}
                       disabled={isSelectedSlotUnavailable(slot)}
                       className={`p-3 rounded-lg border-2 transition-all text-left ${
                         isSelectedSlotUnavailable(slot)
@@ -457,9 +476,9 @@ export const SubscriptionPage = () => {
                     className="flex-1"
                     onClick={() => void handleSubscribe()}
                     loading={processing}
-                    disabled={processing || conflictingDates.length > 0}
+                    disabled={processing || conflictingDates.length > 0 || bookingDisabled}
                   >
-                    {processing ? 'Processing...' : `Reserve Onsite - ₹${subscriptionPrice}`}
+                    {bookingDisabled ? 'Bookings Paused' : processing ? 'Processing...' : `Reserve Onsite - ₹${subscriptionPrice}`}
                   </Button>
                 </div>
               </div>

@@ -17,6 +17,7 @@ import { ProfilePage } from "./pages/user/ProfilePage";
 import { ContactPage } from "./pages/ContactPage";
 import { AdminLogin } from "./pages/admin/AdminLogin";
 import { AdminDashboard } from "./pages/admin/AdminDashboard";
+import { AdminUsers } from "./pages/admin/AdminUsers";
 import { AdminBookings } from "./pages/admin/AdminBookings";
 import { AdminSettings } from "./pages/admin/AdminSettings";
 import { AdminGalleryPage } from "./pages/admin/AdminGalleryPage";
@@ -126,6 +127,10 @@ export const router = createBrowserRouter([
       {
         path: "admin/dashboard",
         element: <ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>,
+      },
+      {
+        path: "admin/users",
+        element: <ProtectedRoute requiredRole="admin"><AdminUsers /></ProtectedRoute>,
       },
       {
         path: "admin/bookings",

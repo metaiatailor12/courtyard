@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS = {
   pricing: { offPeak: 500, peak: 800, subscription: 2500 },
   courts: ['Court 1', 'Court 2', 'Court 3'],
   operatingHours: { startHour: 5, endHour: 22 },
+  bookingDisabled: false,
   landing: {},
 };
 
@@ -35,6 +36,7 @@ async function getAppSettings() {
     pricing: data.pricing,
     courts: data.courts,
     operatingHours: data.operatingHours,
+    bookingDisabled: Boolean(data.bookingDisabled),
     landing: data.landing,
     createdAt: data.createdAt?.toDate?.(),
     updatedAt: data.updatedAt?.toDate?.(),
@@ -51,6 +53,7 @@ async function updateAppSettings(payload) {
     operatingHours: payload.operatingHours
       ? { ...current.operatingHours, ...payload.operatingHours }
       : current.operatingHours,
+    bookingDisabled: typeof payload.bookingDisabled === 'boolean' ? payload.bookingDisabled : Boolean(current.bookingDisabled),
     landing: payload.landing ? { ...current.landing, ...payload.landing } : current.landing,
     updatedAt: new Date(),
   };

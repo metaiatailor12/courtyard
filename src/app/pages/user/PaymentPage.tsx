@@ -13,6 +13,7 @@ import { showSuccessToast } from '../../utils/notificationHelpers';
 export const PaymentPage = () => {
   const navigate = useNavigate();
   const { selectedSlots, createBooking, getTotalAmount, appSettings } = useBooking();
+  const bookingDisabled = Boolean(appSettings.bookingDisabled);
   const { user } = useAuth();
   const { addNotification } = useNotifications();
   const [processing, setProcessing] = useState(false);
@@ -67,6 +68,10 @@ export const PaymentPage = () => {
   };
 
   const handlePayment = async () => {
+    if (bookingDisabled) {
+      return;
+    }
+
     setProcessing(true);
     
     try {
@@ -79,7 +84,6 @@ export const PaymentPage = () => {
         title: 'Booking Not Available',
         message,
       });
-      alert(message);
       navigate('/user/booking');
     } finally {
       setProcessing(false);
@@ -184,14 +188,17 @@ export const PaymentPage = () => {
                 className="w-full text-sm md:text-base"
                 onClick={handlePayment}
                 loading={processing}
-                disabled={processing}
+                disabled={processing || bookingDisabled}
               >
-                {processing ? 'Booking...' : `Book Onsite - ₹${subtotal}`}
+                {bookingDisabled
+                  ? 'Bookings are currently closed for today'
+                  : processing
+                  ? 'Booking...'
+                  : `Book Onsite - ₹${subtotal}`}
               </Button>
               
               <div className="flex items-center justify-center gap-2 text-xs md:text-sm text-gray-500">
                 <Lock className="w-3 h-3 md:w-4 md:h-4" />
-                <span>Your payment is secured with 256-bit SSL encryption</span>
               </div>
             </div>
 

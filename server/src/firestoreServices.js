@@ -137,6 +137,7 @@ const DEFAULT_SETTINGS = {
   pricing: { offPeak: 500, peak: 800, subscription: 2500 },
   courts: ['Court 1', 'Court 2', 'Court 3'],
   operatingHours: { startHour: 5, endHour: 22 },
+  bookingDisabled: false,
   landing: DEFAULT_LANDING,
 };
 
@@ -265,6 +266,7 @@ function mapSettings(doc) {
     pricing: data.pricing || DEFAULT_SETTINGS.pricing,
     courts: Array.isArray(data.courts) && data.courts.length ? data.courts : DEFAULT_SETTINGS.courts,
     operatingHours: data.operatingHours || DEFAULT_SETTINGS.operatingHours,
+    bookingDisabled: Boolean(data.bookingDisabled),
     landing: normalizeLandingContent(data.landing),
     createdAt: toIso(data.createdAt),
     updatedAt: toIso(data.updatedAt),
@@ -328,6 +330,7 @@ async function updateAppSettings(payload) {
     operatingHours: payload.operatingHours
       ? { ...current.operatingHours, ...payload.operatingHours }
       : current.operatingHours,
+    bookingDisabled: typeof payload.bookingDisabled === 'boolean' ? payload.bookingDisabled : Boolean(current.bookingDisabled),
     landing: nextLanding,
     updatedAt: new Date(),
   };
@@ -615,8 +618,12 @@ function mapSubscriptionDoc(doc) {
     userName: data.userName || data.user_name,
     userEmail: data.userEmail || data.user_email,
     userPhone: data.userPhone || data.user_phone,
+    // timestamps
     createdAt: toIso(data.createdAt || data.created_at),
     cancelledAt: data.cancelledAt ? toIso(data.cancelledAt) : undefined,
+    pausedAt: data.pausedAt ? toIso(data.pausedAt) : undefined,
+    pausedOriginalEndDate: data.pausedOriginalEndDate || data.paused_original_end_date || undefined,
+    resumedAt: data.resumedAt ? toIso(data.resumedAt) : undefined,
   };
 }
 
@@ -827,8 +834,13 @@ async function createBookingRecord({ userId, userName, userEmail, userPhone, cou
 
   const db = getDb();
   const dateKey = toUtcDateKey(date);
-  const normalizedSlots = slots.map(slot => normalizeBookingSlot(slot, dateKey));
   const settings = await getAppSettings();
+
+  if (settings.bookingDisabled && source !== 'admin-desk') {
+    throw new ApiError(403, 'Bookings are temporarily paused by the admin');
+  }
+
+  const normalizedSlots = slots.map(slot => normalizeBookingSlot(slot, dateKey));
   const canonicalSlots = normalizedSlots.map(slot => ({
     ...slot,
     price: getCanonicalSlotPrice(slot.date, slot.slotTimeKey, settings.pricing),
@@ -1006,12 +1018,18 @@ async function cancelBooking(user, bookingId, reason = 'Cancelled by user') {
   return { ...booking, status: 'cancelled', cancelledAt: now.toISOString(), cancelReason: reason };
 }
 
-async function createSubscriptionRecord({ userId, userName, userEmail, userPhone, courtName, court, timeSlot, startDate, endDate, weekdaysCount, amount, paymentId, status = 'active', idempotencyKey }) {
+async function createSubscriptionRecord({ userId, userName, userEmail, userPhone, courtName, court, timeSlot, startDate, endDate, weekdaysCount, amount, paymentId, status = 'active', idempotencyKey, source = 'user-app' }) {
   if (!userId) {
     throw new ApiError(401, 'Authentication required');
   }
 
   const db = getDb();
+  const settings = await getAppSettings();
+
+  if (settings.bookingDisabled && source !== 'admin-desk') {
+    throw new ApiError(403, 'Subscriptions are temporarily paused by the admin');
+  }
+
   const normalizedStart = toUtcDateKey(startDate);
   const normalizedEnd = toUtcDateKey(endDate);
 
@@ -1020,7 +1038,6 @@ async function createSubscriptionRecord({ userId, userName, userEmail, userPhone
   }
 
   const timeKey = normalizeTimeRange(timeSlot);
-  const settings = await getAppSettings();
   const weekdayDates = getSubscriptionWeekdays(normalizedStart, normalizedEnd);
   const courtNumber = Number(court);
   const bookedSlotSnapshots = await Promise.all(weekdayDates.map(dateKey => db.collection('booking_slots').where('date', '==', dateKey).get()));
@@ -1139,6 +1156,66 @@ async function cancelSubscription(user, subscriptionId) {
   });
 
   return { ...subscription, status: 'cancelled', cancelledAt: now.toISOString() };
+}
+
+async function updateSubscription(user, subscriptionId, updates = {}) {
+  const db = getDb();
+  const subscription = await getSubscriptionById(user, subscriptionId);
+  const ref = db.collection('subscriptions').doc(subscription.id);
+  const now = new Date();
+
+  const allowedUpdates = {};
+
+  if (typeof updates.status === 'string') {
+    const status = updates.status;
+    allowedUpdates.status = status;
+
+    if (status === 'paused') {
+      // record when pause started and preserve original endDate so we can shift it on resume
+      allowedUpdates.pausedAt = now;
+      allowedUpdates.pausedOriginalEndDate = subscription.endDate || null;
+    } else if (status === 'active') {
+      // resuming: if we have a pausedAt, shift the endDate by the number of days paused
+      const pausedAtStr = subscription.pausedAt || updates.pausedAt || null;
+      const originalEnd = subscription.pausedOriginalEndDate || subscription.endDate || null;
+      if (pausedAtStr && originalEnd) {
+        const pausedAtDate = new Date(pausedAtStr);
+        const resumedAtDate = now;
+        // calculate days paused (round up partial days)
+        const ms = resumedAtDate.getTime() - pausedAtDate.getTime();
+        const daysPaused = Math.ceil(ms / (24 * 60 * 60 * 1000));
+
+        // add daysPaused to originalEnd (assume originalEnd is YYYY-MM-DD)
+        const orig = new Date(originalEnd + 'T00:00:00.000Z');
+        orig.setUTCDate(orig.getUTCDate() + daysPaused);
+        const newEndDate = orig.toISOString().slice(0, 10);
+
+        allowedUpdates.endDate = newEndDate;
+      }
+
+      allowedUpdates.pausedAt = null;
+      allowedUpdates.pausedOriginalEndDate = null;
+      allowedUpdates.resumedAt = now;
+    } else if (status === 'cancelled') {
+      allowedUpdates.cancelledAt = now;
+    }
+  }
+
+  // Allow updating endDate if provided
+  if (typeof updates.endDate === 'string' && updates.endDate.trim()) {
+    allowedUpdates.endDate = updates.endDate;
+  }
+
+  allowedUpdates.updatedAt = now;
+
+  await ref.update(allowedUpdates);
+
+  const updated = { ...subscription, ...allowedUpdates };
+  if (updated.pausedAt && updated.pausedAt.toISOString) updated.pausedAt = updated.pausedAt.toISOString();
+  if (updated.resumedAt && updated.resumedAt.toISOString) updated.resumedAt = updated.resumedAt.toISOString();
+  updated.updatedAt = now.toISOString();
+
+  return updated;
 }
 
 async function getDashboardStats() {
@@ -1635,6 +1712,7 @@ module.exports = {
   listSubscriptions,
   getSubscriptionById,
   cancelSubscription,
+  updateSubscription,
   getDashboardStats,
   getRevenueSeries,
   listUsers,

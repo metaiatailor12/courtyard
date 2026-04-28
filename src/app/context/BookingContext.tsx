@@ -72,7 +72,7 @@ export interface TimeSlot {
   id: string;
   time: string;
   court: number;
-  date: string;
+  status: 'active' | 'expired' | 'cancelled' | 'paused';
   status: 'available' | 'booked' | 'selected';
   price: number;
 }
@@ -80,6 +80,9 @@ export interface TimeSlot {
 export interface Booking {
   id: string;
   courtName: string;
+  pausedAt?: string;
+  pausedOriginalEndDate?: string;
+  resumedAt?: string;
   date: string;
   slots: TimeSlot[];
   totalAmount: number;
@@ -105,6 +108,8 @@ export interface Subscription {
   weekdaysCount: number;
   amount: number;
   status: 'active' | 'expired' | 'cancelled';
+  // 'paused' indicates the subscription is temporarily suspended by admin
+  status: 'active' | 'expired' | 'cancelled' | 'paused';
   paymentId?: string;
   paymentMethod?: 'online' | 'onsite';
   paymentStatus?: 'paid' | 'pending';
@@ -120,6 +125,7 @@ interface BookingContextType {
     pricing: { offPeak: number; peak: number; subscription: number };
     courts: string[];
     operatingHours: { startHour: number; endHour: number };
+    bookingDisabled: boolean;
     landing: Record<string, unknown>;
   };
   selectedSlots: TimeSlot[];
@@ -133,6 +139,7 @@ interface BookingContextType {
   cancelBooking: (bookingId: string, options?: { asAdmin?: boolean }) => Promise<void>;
   cancelSubscription: (subscriptionId: string, options?: { asAdmin?: boolean }) => Promise<void>;
   updateBooking: (bookingId: string, updates: { paymentStatus?: 'paid' | 'pending' }) => Promise<Booking>;
+  updateSubscription: (subscriptionId: string, updates: any, options?: { asAdmin?: boolean }) => Promise<Subscription>;
   isSlotBooked: (date: string, court: number, time: string) => boolean;
   getTotalAmount: () => number;
 }
@@ -170,6 +177,7 @@ const DEFAULT_APP_SETTINGS = {
   pricing: { offPeak: 500, peak: 800, subscription: 2500 },
   courts: ['Court 1', 'Court 2', 'Court 3'],
   operatingHours: { startHour: 5, endHour: 22 },
+  bookingDisabled: false,
   landing: {},
 };
 
@@ -294,6 +302,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         pricing?: typeof DEFAULT_APP_SETTINGS.pricing;
         courts?: string[];
         operatingHours?: typeof DEFAULT_APP_SETTINGS.operatingHours;
+        bookingDisabled?: boolean;
         landing?: typeof DEFAULT_APP_SETTINGS.landing;
       } }>(`${getAPI_BASE_URL()}/settings`, {
         cacheKey: SETTINGS_CACHE_KEY,
@@ -315,6 +324,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         pricing: settings.pricing || DEFAULT_APP_SETTINGS.pricing,
         courts: Array.isArray(settings.courts) && settings.courts.length ? settings.courts : DEFAULT_APP_SETTINGS.courts,
         operatingHours: settings.operatingHours || DEFAULT_APP_SETTINGS.operatingHours,
+        bookingDisabled: Boolean(settings.bookingDisabled),
         landing: settings.landing || DEFAULT_APP_SETTINGS.landing,
       });
     } catch {
@@ -375,14 +385,23 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       void fetchSettings({ force: true });
     };
 
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'tcy:settings-updated') {
+        invalidateCachedJson(SETTINGS_CACHE_KEY);
+        void fetchSettings({ force: true });
+      }
+    };
+
     window.addEventListener('focus', handleFocus);
     window.addEventListener('tcy:settings-updated', handleSettingsUpdated as EventListener);
+    window.addEventListener('storage', handleStorage);
 
     return () => {
       active = false;
       window.clearInterval(pollTimer);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('tcy:settings-updated', handleSettingsUpdated as EventListener);
+      window.removeEventListener('storage', handleStorage);
       unsubscribe();
     };
   }, [auth]);
@@ -453,6 +472,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const createBooking = async (booking: Omit<Booking, 'id' | 'createdAt'>, options?: { asAdmin?: boolean }) => {
+    if (appSettings.bookingDisabled && !options?.asAdmin) {
+      throw new Error('Bookings are temporarily paused by the admin');
+    }
+
     const conflictingSlot = booking.slots.find(slot => isSlotBooked(slot.date, slot.court, slot.time));
 
     if (conflictingSlot) {
@@ -483,6 +506,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const createSubscription = async (subscription: Omit<Subscription, 'id' | 'createdAt'>, options?: { asAdmin?: boolean }) => {
+    if (appSettings.bookingDisabled && !options?.asAdmin) {
+      throw new Error('Subscriptions are temporarily paused by the admin');
+    }
+
     const normalizedTimeSlot = normalizeTimeSlot(subscription.timeSlot);
     const dates = getDateRange(subscription.startDate, subscription.endDate).filter(isWeekday);
     const conflictingDate = dates.find(date => isSlotBooked(date, subscription.court, normalizedTimeSlot));
@@ -584,6 +611,32 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     return updatedBooking;
   };
 
+  const updateSubscription = async (subscriptionId: string, updates: any, options?: { asAdmin?: boolean }): Promise<Subscription> => {
+    const accessToken = await getAccessToken();
+    const endpoint = options?.asAdmin
+      ? `${getAPI_BASE_URL()}/admin/subscriptions/${subscriptionId}`
+      : `${getAPI_BASE_URL()}/subscriptions/${subscriptionId}`;
+
+    const response = await fetch(endpoint, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(updates),
+    });
+
+    const payload = await parseApiPayload(response);
+    if (!response.ok || !payload?.subscription) {
+      throw new Error(getApiErrorMessage(response, payload, 'Unable to update subscription'));
+    }
+
+    const updatedSubscription: Subscription = payload.subscription;
+    setSubscriptions(prev => prev.map(existing => (existing.id === updatedSubscription.id ? updatedSubscription : existing)));
+
+    return updatedSubscription;
+  };
+
   const getTotalAmount = () => {
     return selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
   };
@@ -602,6 +655,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         createSubscription,
         cancelBooking,
         cancelSubscription,
+        updateSubscription,
         updateBooking,
         isSlotBooked,
         getTotalAmount,

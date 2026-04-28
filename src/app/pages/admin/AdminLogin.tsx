@@ -40,7 +40,11 @@ export const AdminLogin = () => {
       
       // Map common errors to user-friendly messages
       let displayMessage = message;
-      if (/invalid login credentials|invalid credentials|invalid email or password/i.test(message)) {
+      if (/invalid password|wrong password/i.test(message)) {
+        displayMessage = 'Invalid password.';
+      } else if (/no user found|user not found|no account found|unknown email/i.test(message)) {
+        displayMessage = 'No account found with this email.';
+      } else if (/invalid login credentials|invalid credentials|invalid email or password/i.test(message)) {
         displayMessage = 'Invalid email or password.';
       } else if (/admin access required/i.test(message)) {
         displayMessage = 'Admin access required. Please use an admin account.';

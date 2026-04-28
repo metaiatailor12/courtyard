@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Users, Calendar, TrendingUp, DollarSign, Clock, CheckCircle } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
@@ -7,8 +7,6 @@ import { RevenueChart } from '../../components/charts/RevenueChart';
 import { BookingStatusChart } from '../../components/charts/BookingStatusChart';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
-import { getAPI_BASE_URL } from '../../lib/apiConfig';
-import { getCurrentUserToken } from '../../lib/firebaseClient';
 import { format } from 'date-fns';
 
 export const AdminDashboard = () => {
@@ -16,70 +14,6 @@ export const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showRevenueModal, setShowRevenueModal] = useState(false);
-  const [showUserModal, setShowUserModal] = useState(false);
-  const [users, setUsers] = useState<Array<{
-    id: string;
-    name: string;
-    email: string;
-    phone?: string | null;
-    status: string;
-    bookings: number;
-    joinedAt: string;
-  }>>([]);
-  const [usersLoading, setUsersLoading] = useState(false);
-
-  useEffect(() => {
-    if (!showUserModal) {
-      return;
-    }
-
-    let active = true;
-
-    const loadUsers = async () => {
-      setUsersLoading(true);
-
-      try {
-        if (!user) {
-          setUsers([]);
-          return;
-        }
-
-        const token = await getCurrentUserToken();
-        if (!token) {
-          setUsers([]);
-          return;
-        }
-
-        const response = await fetch(`${getAPI_BASE_URL()}/admin/users`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const payload = await response.json();
-
-        if (!active || !response.ok) {
-          return;
-        }
-
-        setUsers(Array.isArray(payload?.users) ? payload.users : []);
-      } catch {
-        if (active) {
-          setUsers([]);
-        }
-      } finally {
-        if (active) {
-          setUsersLoading(false);
-        }
-      }
-    };
-
-    void loadUsers();
-
-    return () => {
-      active = false;
-    };
-  }, [showUserModal]);
 
   const currentMonthKey = useMemo(() => format(new Date(), 'yyyy-MM'), []);
   const todayKey = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
@@ -312,7 +246,7 @@ export const AdminDashboard = () => {
                 <span>Revenue Report</span>
               </button>
               <button 
-                onClick={() => setShowUserModal(true)}
+                onClick={() => navigate('/admin/users')}
                 className="w-full p-3 md:p-4 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all flex items-center justify-center md:justify-start gap-3 text-sm md:text-base"
               >
                 <Users className="w-4 h-4 md:w-5 md:h-5" />
@@ -400,99 +334,6 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {/* User Management Modal */}
-      {showUserModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
-                <p className="text-gray-600 text-sm mt-1">Manage registered users</p>
-              </div>
-              <button
-                onClick={() => setShowUserModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* User Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 to-green-50 p-6 rounded-xl border border-blue-100">
-                  <p className="text-green-900 text-sm font-medium mb-2">Total Users</p>
-                  <p className="text-3xl font-bold text-gray-800">{users.length.toLocaleString()}</p>
-                  <p className="text-xs text-blue-600 mt-2">Live users from database</p>
-                </div>
-                <div className="bg-gradient-to-br from-green-50 to-green-50 p-6 rounded-xl border border-green-100">
-                  <p className="text-green-900 text-sm font-medium mb-2">Active Users</p>
-                  <p className="text-3xl font-bold text-gray-800">{users.filter(user => user.status !== 'Inactive').length.toLocaleString()}</p>
-                  <p className="text-xs text-green-900 mt-2">Registered and active users</p>
-                </div>
-                <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-6 rounded-xl border border-purple-100">
-                  <p className="text-purple-600 text-sm font-medium mb-2">Subscribers</p>
-                  <p className="text-3xl font-bold text-gray-800">{users.filter(user => user.status === 'Subscriber').length}</p>
-                  <p className="text-xs text-purple-600 mt-2">Users with active subscriptions</p>
-                </div>
-              </div>
-
-              {/* User List */}
-              <div className="bg-gray-50 p-6 rounded-xl">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">All Users</h3>
-                <div className="space-y-2">
-                  {usersLoading ? (
-                    <div className="p-4 bg-white rounded-lg text-sm text-gray-600">Loading users...</div>
-                  ) : users.length === 0 ? (
-                    <div className="p-4 bg-white rounded-lg text-sm text-gray-600">No users found in the database.</div>
-                  ) : (
-                    users.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between p-4 bg-white rounded-lg hover:shadow-md transition-shadow">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="w-12 h-12 bg-gradient-to-br from-green-900 to-green-800 rounded-full flex items-center justify-center text-white font-semibold">
-                            {user.name.split(' ').map(n => n[0]).join('')}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-800 truncate">{user.name}</p>
-                            <p className="text-sm text-gray-600 truncate">{user.email}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right hidden md:block">
-                            <p className="text-xs text-gray-500">Bookings</p>
-                            <p className="font-semibold text-gray-800">{user.bookings}</p>
-                            <p className="text-xs text-gray-500 mt-1">Joined {format(new Date(user.joinedAt), 'MMM yyyy')}</p>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            user.status === 'Admin' ? 'bg-red-100 text-red-700' :
-                            user.status === 'Subscriber' ? 'bg-purple-100 text-purple-700' :
-                            user.status === 'Active' ? 'bg-green-100 text-green-700' :
-                            'bg-gray-100 text-gray-700'
-                          }`}>
-                            {user.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button className="flex-1 px-4 py-3 bg-gradient-to-r from-green-900 to-green-800 text-white rounded-xl hover:from-green-950 hover:to-green-900 transition-all font-medium">
-                  Export Users
-                </button>
-                <button className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium">
-                  Send Notification
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

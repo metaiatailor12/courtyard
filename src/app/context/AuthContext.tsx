@@ -262,9 +262,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(nextUser);
 
     } catch (error: any) {
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        throw new Error('Invalid email or password');
+      // Map common Firebase auth error codes to clear, user-facing messages
+      if (error?.code === 'auth/user-not-found') {
+        throw new Error('No user found with this email');
       }
+      if (error?.code === 'auth/wrong-password') {
+        throw new Error('Invalid password');
+      }
+      if (error?.code === 'auth/invalid-email') {
+        throw new Error('Invalid email address');
+      }
+      if (error?.code === 'auth/invalid-credential') {
+        throw new Error('Invalid credentials');
+      }
+
+      // Fallback: rethrow original error for upstream handling
       throw error;
     }
   };

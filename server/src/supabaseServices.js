@@ -13,6 +13,7 @@ const DEFAULT_SETTINGS = {
   pricing: { offPeak: 500, peak: 800, subscription: 2500 },
   courts: ['Court 1', 'Court 2', 'Court 3'],
   operating_hours: { startHour: 5, endHour: 22 },
+  bookingDisabled: false,
   landing: {},
 };
 
@@ -26,6 +27,7 @@ function mapSettingsRow(row) {
     pricing: row.pricing,
     courts: row.courts,
     operatingHours: row.operating_hours,
+    bookingDisabled: Boolean(row.booking_disabled ?? row.bookingDisabled),
     landing: row.landing,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -74,6 +76,7 @@ async function updateAppSettings(payload) {
     operating_hours: payload.operatingHours
       ? { ...current.operating_hours, ...payload.operatingHours }
       : current.operating_hours,
+    bookingDisabled: typeof payload.bookingDisabled === 'boolean' ? payload.bookingDisabled : Boolean(current.bookingDisabled),
     landing: payload.landing ? { ...current.landing, ...payload.landing } : current.landing,
   };
 
@@ -236,7 +239,7 @@ function mapBookingRow(row, slotRows) {
   };
 }
 
-async function createBookingRecord({ userId, userName, userEmail, userPhone, courtName, date, slots, totalAmount, paymentId, status = 'upcoming', idempotencyKey }) {
+async function createBookingRecord({ userId, userName, userEmail, userPhone, courtName, date, slots, totalAmount, paymentId, status = 'upcoming', idempotencyKey, source = 'user-app' }) {
   if (!userId) {
     throw new ApiError(401, 'Authentication required');
   }
@@ -246,12 +249,17 @@ async function createBookingRecord({ userId, userName, userEmail, userPhone, cou
   }
 
   const dateKey = toUtcDateKey(date);
+  const settings = await getAppSettings();
   
   let normalizedSlots;
   try {
     normalizedSlots = slots.map(slot => mapSlotInput(slot, dateKey));
   } catch (err) {
     throw err;
+  }
+
+  if (settings.bookingDisabled && source !== 'admin-desk') {
+    throw new ApiError(403, 'Bookings are temporarily paused by the admin');
   }
 
   await assertNoSlotConflicts(normalizedSlots);
@@ -433,9 +441,14 @@ function mapSubscriptionRow(row) {
   };
 }
 
-async function createSubscriptionRecord({ userId, userName, userEmail, userPhone, courtName, court, timeSlot, startDate, endDate, weekdaysCount, amount, paymentId, status = 'active', idempotencyKey }) {
+async function createSubscriptionRecord({ userId, userName, userEmail, userPhone, courtName, court, timeSlot, startDate, endDate, weekdaysCount, amount, paymentId, status = 'active', idempotencyKey, source = 'user-app' }) {
   if (!userId) {
     throw new ApiError(401, 'Authentication required');
+  }
+
+  const settings = await getAppSettings();
+  if (settings.bookingDisabled && source !== 'admin-desk') {
+    throw new ApiError(403, 'Subscriptions are temporarily paused by the admin');
   }
 
   const normalizedStart = toUtcDateKey(startDate);
@@ -598,6 +611,62 @@ async function cancelSubscription(user, subscriptionId) {
   return mapSubscriptionRow(data);
 }
 
+async function updateSubscription(user, subscriptionId, updates = {}) {
+  const subscription = await getSubscriptionById(user, subscriptionId);
+  const supabase = getClient();
+
+  const changes = {};
+  if (typeof updates.status === 'string') {
+    changes.status = updates.status;
+    if (updates.status === 'paused') {
+      changes.paused_at = new Date().toISOString();
+      changes.paused_original_end_date = subscription.end_date || subscription.endDate || null;
+    } else if (updates.status === 'active') {
+      // If paused, shift end_date forward by paused duration
+      if (subscription.paused_at) {
+        const pausedAt = new Date(subscription.paused_at);
+        const resumedAt = new Date();
+        const ms = resumedAt.getTime() - pausedAt.getTime();
+        const daysPaused = Math.ceil(ms / (24 * 60 * 60 * 1000));
+
+        const originalEnd = subscription.paused_original_end_date || subscription.end_date || subscription.endDate || null;
+        if (originalEnd) {
+          const orig = new Date(originalEnd + 'T00:00:00.000Z');
+          orig.setUTCDate(orig.getUTCDate() + daysPaused);
+          changes.end_date = orig.toISOString().slice(0, 10);
+        }
+      }
+
+      changes.paused_at = null;
+      changes.paused_original_end_date = null;
+      changes.resumed_at = new Date().toISOString();
+    } else if (updates.status === 'cancelled') {
+      changes.cancelled_at = new Date().toISOString();
+    }
+  }
+
+  if (typeof updates.endDate === 'string' && updates.endDate.trim()) {
+    changes.end_date = updates.endDate;
+  }
+
+  if (Object.keys(changes).length === 0) {
+    return subscription;
+  }
+
+  const { data, error } = await supabase
+    .from('subscriptions')
+    .update(changes)
+    .eq('id', subscription.id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new ApiError(500, error.message);
+  }
+
+  return mapSubscriptionRow(data);
+}
+
 async function getDashboardStats() {
   const supabase = getClient();
 
@@ -744,6 +813,7 @@ module.exports = {
   listSubscriptions,
   getSubscriptionById,
   cancelSubscription,
+  updateSubscription,
   getDashboardStats,
   getRevenueSeries,
   listUsers,

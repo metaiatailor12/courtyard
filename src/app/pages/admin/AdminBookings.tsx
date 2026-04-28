@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Calendar, Edit, Trash2, Eye, Repeat, X, Clock, User, MapPin, Phone, Plus, CheckCircle } from 'lucide-react';
+import { Search, Calendar, Edit, Trash2, Eye, Repeat, X, Clock, User, MapPin, Phone, Plus, CheckCircle, Pause, Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
@@ -11,7 +11,7 @@ import { CreateBookingModal } from './CreateBookingModal';
 import { CreateSubscriptionModal } from './CreateSubscriptionModal';
 
 export const AdminBookings = () => {
-  const { bookings, subscriptions, cancelBooking, cancelSubscription, createBooking, createSubscription, updateBooking } = useBooking();
+  const { bookings, subscriptions, cancelBooking, cancelSubscription, createBooking, createSubscription, updateBooking, updateSubscription } = useBooking();
   const [activeTab, setActiveTab] = useState<'bookings' | 'subscriptions'>('bookings');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
@@ -78,6 +78,26 @@ export const AdminBookings = () => {
   const handleDeleteBookingFromDetails = (bookingId: string) => {
     setViewDetailsModal(null);
     setConfirmDialog({ type: 'booking', id: bookingId });
+  };
+
+  const handlePauseSubscription = async (subscriptionId: string) => {
+    try {
+      await updateSubscription(subscriptionId, { status: 'paused' }, { asAdmin: true });
+      showSuccessToast('Subscription paused', 'Subscription has been paused successfully.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to pause subscription';
+      showErrorToast('Error', message);
+    }
+  };
+
+  const handleResumeSubscription = async (subscriptionId: string) => {
+    try {
+      await updateSubscription(subscriptionId, { status: 'active' }, { asAdmin: true });
+      showSuccessToast('Subscription resumed', 'Subscription has been resumed successfully.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to resume subscription';
+      showErrorToast('Error', message);
+    }
   };
 
   const handleCreateBooking = async (data: any) => {
@@ -164,6 +184,7 @@ export const AdminBookings = () => {
       completed: 'bg-green-100 text-green-800',
       cancelled: 'bg-red-100 text-red-800',
       active: 'bg-green-100 text-green-800',
+      paused: 'bg-yellow-100 text-yellow-800',
       expired: 'bg-gray-100 text-gray-800',
     };
     return (
@@ -242,7 +263,7 @@ export const AdminBookings = () => {
                 </button>
               ))
             ) : (
-              ['all', 'active', 'expired'].map((status) => (
+              ['all', 'active', 'paused', 'expired'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setSubStatusFilter(status as any)}
@@ -449,6 +470,31 @@ export const AdminBookings = () => {
                                 title="Edit Subscription"
                               >
                                 <Edit className="w-4 h-4 text-yellow-700" />
+                              </button>
+                              <button
+                                onClick={() => handlePauseSubscription(sub.id)}
+                                className="p-2 hover:bg-yellow-50 rounded-lg transition-colors"
+                                title="Pause Subscription"
+                              >
+                                <Pause className="w-4 h-4 text-yellow-700" />
+                              </button>
+                              <button
+                                onClick={() => handleCancelSubscription(sub.id)}
+                                className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Cancel Subscription"
+                              >
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </button>
+                            </>
+                          )}
+                          {sub.status === 'paused' && (
+                            <>
+                              <button
+                                onClick={() => handleResumeSubscription(sub.id)}
+                                className="p-2 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Resume Subscription"
+                              >
+                                <Play className="w-4 h-4 text-green-700" />
                               </button>
                               <button
                                 onClick={() => handleCancelSubscription(sub.id)}

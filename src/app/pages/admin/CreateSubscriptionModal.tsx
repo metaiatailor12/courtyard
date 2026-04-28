@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Calendar } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { DatePickerField } from '../../components/DatePickerField';
 
 interface CreateSubscriptionModalProps {
   isOpen: boolean;
@@ -184,15 +185,13 @@ export const CreateSubscriptionModal = ({ isOpen, onClose, onCreate }: CreateSub
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="date"
+                <DatePickerField
+                  label="Start Date"
                   value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(value) => setFormData({ ...formData, startDate: value })}
+                  minDate={new Date().toISOString().split('T')[0]}
                   required
+                  placeholder="Select start date"
                 />
               </div>
               {formData.startDate && (
@@ -200,12 +199,9 @@ export const CreateSubscriptionModal = ({ isOpen, onClose, onCreate }: CreateSub
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     End Date
                   </label>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    disabled
-                    className="bg-gray-100"
-                  />
+                  <div className="rounded-xl border border-gray-200 bg-gray-100 px-4 py-3 text-gray-600">
+                    {endDate}
+                  </div>
                 </div>
               )}
             </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { DollarSign, Save, Image, MapPin, Phone, Mail, Star, Clock, Layout, Plus, Trash2, Eye, Settings as SettingsIcon, Palette, Upload } from 'lucide-react';
+import { DollarSign, Save, Image, MapPin, Phone, Mail, Star, Clock, Layout, Plus, Trash2, Eye, Settings as SettingsIcon, Palette, Upload, Lock, Unlock } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
@@ -48,6 +48,7 @@ export const AdminSettings = () => {
     weekendPrice: appSettings.pricing.peak,
     monthlySubscription: appSettings.pricing.subscription,
   });
+  const [bookingDisabled, setBookingDisabled] = useState(Boolean(appSettings.bookingDisabled));
 
   const [courtDetails, setCourtDetails] = useState({
     name: typeof appSettings.landing.venueName === 'string' ? appSettings.landing.venueName : '',
@@ -71,6 +72,7 @@ export const AdminSettings = () => {
       weekendPrice: appSettings.pricing.peak,
       monthlySubscription: appSettings.pricing.subscription,
     });
+    setBookingDisabled(Boolean(appSettings.bookingDisabled));
 
     setCourtDetails({
       name: typeof appSettings.landing.venueName === 'string' ? appSettings.landing.venueName : '',
@@ -111,6 +113,7 @@ export const AdminSettings = () => {
     
     // Notify other components to refresh
     window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
+    try { window.localStorage.setItem('tcy:settings-updated', String(Date.now())); } catch {}
     
     return result;
   };
@@ -141,6 +144,26 @@ export const AdminSettings = () => {
       const message = error instanceof Error ? error.message : 'Unable to save pricing';
       showErrorToast('Save failed', message);
       console.error('Failed to save pricing', error);
+    }
+  };
+
+  const handleSaveBookingLock = async () => {
+    try {
+      const response = await saveSettings({
+        bookingDisabled,
+      });
+
+      if (typeof response?.settings?.bookingDisabled === 'boolean') {
+        setBookingDisabled(response.settings.bookingDisabled);
+      }
+
+      setSaved(true);
+      showSuccessToast(bookingDisabled ? 'Bookings paused successfully!' : 'Bookings resumed successfully!');
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to update booking lock';
+      showErrorToast('Save failed', message);
+      console.error('Failed to update booking lock', error);
     }
   };
 
@@ -387,6 +410,46 @@ export const AdminSettings = () => {
                   {saved ? 'Saved!' : 'Save Pricing'}
                 </Button>
               </div>
+            </GlassCard>
+
+            <GlassCard className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                  {bookingDisabled ? <Lock className="w-6 h-6 text-red-700" /> : <Unlock className="w-6 h-6 text-green-700" />}
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold">Booking Control</h2>
+                  <p className="text-sm text-gray-600">Pause or resume all customer bookings</p>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 mb-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={bookingDisabled}
+                    onChange={(e) => setBookingDisabled(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-red-700 focus:ring-red-600"
+                  />
+                  <div>
+                    <p className="font-medium text-gray-800">
+                      {bookingDisabled ? 'Bookings are paused' : 'Bookings are open'}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      When paused, customers cannot create new court bookings or subscriptions. Admin actions still work.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <Button
+                variant="primary"
+                className="w-full"
+                onClick={handleSaveBookingLock}
+              >
+                <Save className="w-5 h-5" />
+                {saved ? 'Saved!' : (bookingDisabled ? 'Pause Bookings' : 'Open Bookings')}
+              </Button>
             </GlassCard>
 
             {/* Court Details */}

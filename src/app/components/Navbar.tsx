@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router';
-import { LogOut, User, LayoutDashboard, Settings, Calendar, CreditCard, Phone, Menu, X, MessageSquare, Mail, Image } from 'lucide-react';
+import { LogOut, User, Users, LayoutDashboard, Settings, Calendar, CreditCard, Phone, Menu, X, MessageSquare, Mail, Image } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
 import { NotificationCenter } from './NotificationCenter';
@@ -121,6 +121,15 @@ export const Navbar = () => {
                 >
                   <Calendar className="w-4 h-4" />
                   Bookings
+                </Link>
+                <Link
+                  to="/admin/users"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    isActivePath('/admin/users') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  Users
                 </Link>
                 <Link
                   to="/admin/settings"
@@ -295,6 +304,16 @@ export const Navbar = () => {
                   >
                     <Calendar className="w-4 h-4" />
                     Bookings
+                  </Link>
+                  <Link
+                    to="/admin/users"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                      isActivePath('/admin/users') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    Users
                   </Link>
                   <Link
                     to="/admin/settings"

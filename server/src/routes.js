@@ -19,6 +19,7 @@ const {
 	createSubscriptionRecord,
 	listSubscriptions,
 	cancelSubscription,
+	updateSubscription,
 	getDashboardStats,
 	getRevenueSeries,
 	listUsers,
@@ -365,6 +366,7 @@ router.post('/subscriptions', requireAuth, asyncHandler(async (req, res) => {
 
 	const subscription = await createSubscriptionRecord({
 		...req.body,
+		source: 'user-app',
 		userId: req.auth.sub,
 		userName: req.body?.userName || req.auth.name,
 		userEmail: req.body?.userEmail || req.auth.email,
@@ -457,6 +459,7 @@ router.patch('/admin/bookings/:bookingId', requireAuth, requireRole('admin'), as
 router.post('/admin/subscriptions', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
 	const subscription = await createSubscriptionRecord({
 		...req.body,
+		source: 'admin-desk',
 		userId: await resolveAdminTargetUserId(req),
 		userName: req.body?.userName || req.auth.name,
 		userEmail: req.body?.userEmail || req.auth.email,
@@ -470,6 +473,11 @@ router.post('/admin/subscriptions', requireAuth, requireRole('admin'), asyncHand
 router.delete('/admin/subscriptions/:subscriptionId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
 	const subscription = await cancelSubscription(req.auth, req.params.subscriptionId);
 	res.json({ subscription });
+}));
+
+router.patch('/admin/subscriptions/:subscriptionId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+  const subscription = await updateSubscription(req.auth, req.params.subscriptionId, req.body || {});
+  res.json({ subscription });
 }));
 
 router.use((req, _res, next) => {

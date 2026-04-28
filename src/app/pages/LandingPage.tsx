@@ -404,7 +404,7 @@ export const LandingPage = () => {
               </p>
               <div className="flex flex-wrap gap-4 justify-center">
                 <Button
-                  onClick={() => navigate('/user/booking')}
+                  onClick={() => navigate('/login')}
                   className="px-8 py-4 bg-gradient-to-r from-green-900 to-green-800 text-white rounded-xl hover:shadow-xl hover:scale-105 transition-all duration-300 font-semibold text-lg"
                 >
                   Book Your First Court
@@ -412,7 +412,7 @@ export const LandingPage = () => {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => navigate('/user/subscription')}
+                  onClick={() => navigate('/login')}
                   className="px-8 py-4 bg-white border-2 border-green-900 text-green-900 rounded-xl hover:bg-green-50 hover:shadow-lg transition-all duration-300 font-semibold text-lg"
                 >
                   View Subscriptions

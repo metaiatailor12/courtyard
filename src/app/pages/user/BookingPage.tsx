@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Calendar as CalendarIcon, Clock, Trash2, LogIn, UserPlus, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
-import { DayPicker } from 'react-day-picker';
+import { Calendar } from '../../components/ui/calendar';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { getAPI_BASE_URL } from '../../lib/apiConfig';
 import { motion, AnimatePresence } from 'motion/react';
+import { datePickerCalendarClassNames } from '../../components/datePickerStyles';
 
 const formatHourLabel = (hour: number) => {
   const period = hour >= 12 ? 'PM' : 'AM';
@@ -92,12 +93,14 @@ const generateTimeSlots = (
 export const BookingPage = () => {
   const navigate = useNavigate();
   const { appSettings, selectedSlots, addSlot, removeSlot, isSlotBooked, createBooking } = useBooking();
+  const bookingDisabled = Boolean(appSettings.bookingDisabled);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedCourt, setSelectedCourt] = useState(1);
   const { user } = useAuth();
   const { addNotification } = useNotifications();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarDraftDate, setCalendarDraftDate] = useState<Date>(new Date());
   const [serverAvailability, setServerAvailability] = useState<TimeSlot[]>([]);
   const [onsiteProcessing, setOnsiteProcessing] = useState(false);
   const venueName = typeof appSettings.landing?.venueName === 'string' && appSettings.landing.venueName.trim()
@@ -106,6 +109,12 @@ export const BookingPage = () => {
 
   const timeSlots = generateTimeSlots(selectedDate, selectedCourt, appSettings.pricing, appSettings.operatingHours);
   const courts = appSettings.courts.length ? appSettings.courts : ['Court 1', 'Court 2', 'Court 3'];
+
+  useEffect(() => {
+    if (showCalendar) {
+      setCalendarDraftDate(selectedDate);
+    }
+  }, [selectedDate, showCalendar]);
 
   useEffect(() => {
     let active = true;
@@ -142,6 +151,7 @@ export const BookingPage = () => {
   }, [selectedDate, selectedCourt]);
 
   const handleSlotClick = (slot: TimeSlot) => {
+    if (bookingDisabled) return;
     if (isPastTimeSlot(slot)) return;
     if (isSlotBooked(slot.date, slot.court, slot.time)) return;
     
@@ -160,6 +170,7 @@ export const BookingPage = () => {
   const totalAmount = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
 
   const handleProceedToPayment = () => {
+    if (bookingDisabled) return;
     if (selectedSlots.length > 0) {
       if (!user) {
         setShowLoginPrompt(true);
@@ -170,6 +181,7 @@ export const BookingPage = () => {
   };
 
   const handleBookOnsiteNow = async () => {
+    if (bookingDisabled) return;
     if (selectedSlots.length === 0) {
       return;
     }
@@ -241,6 +253,12 @@ export const BookingPage = () => {
           <p className="text-sm md:text-base text-gray-600">Select date, court, and time slots</p>
         </div>
 
+        {bookingDisabled && (
+          <div className="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
+            Bookings are currently paused by the admin. You can view availability, but customers cannot create new bookings right now.
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Booking Selection */}
           <div className="lg:col-span-2">
@@ -304,7 +322,7 @@ export const BookingPage = () => {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setShowCalendar(false)}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+                        className="fixed inset-0 bg-black/40 z-40"
                       />
 
                       {/* Calendar Popup */}
@@ -312,49 +330,73 @@ export const BookingPage = () => {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 max-w-[90vw]"
+                        className="fixed left-1/2 top-1/2 z-50 w-[min(92vw,22rem)] -translate-x-1/2 -translate-y-1/2"
                       >
-                        <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 sm:p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-gray-800">Select Date</h3>
+                        <div className="overflow-hidden rounded-[28px] bg-[#1f2430] text-white shadow-2xl">
+                          <div className="flex items-start justify-between border-b border-white/10 px-5 py-4">
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{format(calendarDraftDate, 'yyyy')}</p>
+                              <h3 className="mt-1 text-2xl font-semibold text-white">{format(calendarDraftDate, 'EEE, MMM d')}</h3>
+                            </div>
                             <button
                               onClick={() => setShowCalendar(false)}
-                              className="text-gray-400 hover:text-gray-600 transition-colors"
+                              className="rounded-full p-2 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+                              aria-label="Close calendar"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                               </svg>
                             </button>
                           </div>
-                          <style>{`
-                            .rdp {
-                              --rdp-accent-color: #808000;
-                              --rdp-background-color: #d1fae5;
-                            }
-                            .rdp-day_button:hover:not([disabled]) {
-                              background-color: #d1fae5;
-                            }
-                            .rdp-day_button {
-                              border-radius: 0.5rem;
-                            }
-                            @media (max-width: 640px) {
-                              .rdp {
-                                font-size: 0.875rem;
-                              }
-                            }
-                          `}</style>
-                          <DayPicker
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={(date) => {
-                              if (date) {
-                                setSelectedDate(date);
+
+                          <div className="px-5 py-4">
+                            <Calendar
+                              mode="single"
+                              selected={calendarDraftDate}
+                              onSelect={(date) => {
+                                if (date) {
+                                  setCalendarDraftDate(date);
+                                }
+                              }}
+                              disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
+                              className="p-0"
+                              classNames={datePickerCalendarClassNames}
+                            />
+                          </div>
+
+                          <div className="flex items-center justify-between gap-3 border-t border-white/10 px-5 py-4">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const today = new Date();
+                                setCalendarDraftDate(today);
+                                setSelectedDate(today);
                                 setShowCalendar(false);
-                              }
-                            }}
-                            disabled={{ before: new Date() }}
-                            className="!font-sans"
-                          />
+                              }}
+                              className="text-sm font-medium text-[#9dc4ff] transition-colors hover:text-white"
+                            >
+                              Clear
+                            </button>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setShowCalendar(false)}
+                                className="rounded-full px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDate(calendarDraftDate);
+                                  setShowCalendar(false);
+                                }}
+                                className="rounded-full bg-[#9dc4ff] px-4 py-2 text-sm font-semibold text-slate-900 transition-colors hover:bg-[#b7d6ff]"
+                              >
+                                Set
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </motion.div>
                     </>
@@ -502,16 +544,17 @@ export const BookingPage = () => {
                     variant="primary"
                     className="w-full mt-4 md:mt-6 text-sm md:text-base"
                     onClick={handleProceedToPayment}
+                    disabled={bookingDisabled}
                   >
-                    Proceed to Payment
+                    {bookingDisabled ? 'Court is temporarily closed' : 'Proceed to Payment'}
                   </Button>
                   <Button
                     variant="outline"
                     className="w-full mt-3 text-sm md:text-base"
                     onClick={handleBookOnsiteNow}
-                    disabled={onsiteProcessing}
+                    disabled={bookingDisabled || onsiteProcessing}
                   >
-                    {onsiteProcessing ? 'Booking Onsite...' : 'Book Onsite (Pay at Venue)'}
+                    {bookingDisabled ? 'Bookings Paused' : onsiteProcessing ? 'Booking Onsite...' : 'Book Onsite (Pay at Venue)'}
                   </Button>
                 </>
               )}

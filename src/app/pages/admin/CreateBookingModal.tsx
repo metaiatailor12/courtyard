@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { X, Calendar, Clock } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { DatePickerField } from '../../components/DatePickerField';
 import { getAPI_BASE_URL } from '../../lib/apiConfig';
 import { useBooking } from '../../context/BookingContext';
 
@@ -335,15 +336,13 @@ export const CreateBookingModal = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="date"
+                <DatePickerField
+                  label="Date"
                   value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(value) => setFormData({ ...formData, date: value })}
+                  minDate={new Date().toISOString().split('T')[0]}
                   required
+                  placeholder="Select date"
                 />
               </div>
             </div>

@@ -15,6 +15,15 @@ const mapLoginError = (message: string) => {
     return 'Login is taking too long. Please check your internet and try again.';
   }
 
+  // Specific password / email messages
+  if (/invalid password|wrong password/i.test(message)) {
+    return 'Invalid password.';
+  }
+
+  if (/no user found|user not found|no account found|unknown email/i.test(message)) {
+    return 'No account found with this email.';
+  }
+
   if (/invalid login credentials|invalid credentials|invalid email or password/i.test(message)) {
     return 'Invalid email or password.';
   }
