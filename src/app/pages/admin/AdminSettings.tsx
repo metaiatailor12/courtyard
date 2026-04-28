@@ -9,6 +9,7 @@ import { useLandingPage } from '../../context/LandingPageContext';
 import { useBooking } from '../../context/BookingContext';
 import { useAuth } from '../../context/AuthContext';
 import { getCurrentUserToken } from '../../lib/firebaseClient';
+import { invalidateCachedJson } from '../../lib/responseCache';
 import { Calendar, CreditCard, Shield, Zap, Users, Award } from 'lucide-react';
 import { showErrorToast, showSuccessToast } from '../../utils/notificationHelpers';
 
@@ -104,19 +105,33 @@ export const AdminSettings = () => {
       throw new Error(result?.error?.message || 'Unable to save settings');
     }
 
+    // Invalidate settings cache so fresh data is fetched next time
+    invalidateCachedJson('tcy.api.settings.v1');
+    
+    // Notify other components to refresh
     window.dispatchEvent(new CustomEvent('tcy:settings-updated'));
+    
     return result;
   };
 
   const handleSavePricing = async () => {
     try {
-      await saveSettings({
+      const response = await saveSettings({
         pricing: {
           offPeak: pricing.weekdayPrice,
           peak: pricing.weekendPrice,
           subscription: pricing.monthlySubscription,
         },
       });
+
+      // Update local state with server response
+      if (response?.settings?.pricing) {
+        setPricing({
+          weekdayPrice: response.settings.pricing.offPeak,
+          weekendPrice: response.settings.pricing.peak,
+          monthlySubscription: response.settings.pricing.subscription,
+        });
+      }
 
       setSaved(true);
       showSuccessToast('Pricing updated successfully!');
@@ -130,7 +145,7 @@ export const AdminSettings = () => {
 
   const handleSaveDetails = async () => {
     try {
-      await saveSettings({
+      const response = await saveSettings({
         landing: {
           venueName: courtDetails.name,
           venueAddress: courtDetails.address,
@@ -140,6 +155,19 @@ export const AdminSettings = () => {
           venueRating: courtDetails.rating,
         },
       });
+
+      // Update local state with server response
+      if (response?.settings?.landing) {
+        const landing = response.settings.landing;
+        setCourtDetails({
+          name: typeof landing.venueName === 'string' ? landing.venueName : '',
+          address: typeof landing.venueAddress === 'string' ? landing.venueAddress : '',
+          phone: typeof landing.venuePhone === 'string' ? landing.venuePhone : '',
+          email: typeof landing.venueEmail === 'string' ? landing.venueEmail : '',
+          operatingHours: typeof landing.venueOperatingHoursText === 'string' ? landing.venueOperatingHoursText : '',
+          rating: typeof landing.venueRating === 'number' ? landing.venueRating : 0,
+        });
+      }
 
       setSaved(true);
       showSuccessToast('Court details updated successfully!');
