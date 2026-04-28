@@ -34,8 +34,7 @@ export const PaymentPage = () => {
   }
 
   const subtotal = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
-  const gst = Math.round(subtotal * 0.18);
-  const total = subtotal + gst;
+  const total = subtotal;
 
   const createBookingRecord = async () => {
     const paymentPrefix = 'ONSITE';
@@ -44,7 +43,7 @@ export const PaymentPage = () => {
       courtName: venueName,
       date: selectedSlots[0].date,
       slots: selectedSlots,
-      totalAmount: total,
+      totalAmount: subtotal,
       status: 'upcoming',
       paymentId: `${paymentPrefix}${Date.now()}`,
       paymentMethod: 'onsite',
@@ -137,13 +136,9 @@ export const PaymentPage = () => {
                 <span>Subtotal</span>
                 <span className="font-medium">₹{subtotal}</span>
               </div>
-              <div className="flex justify-between text-xs md:text-base text-gray-700">
-                <span>GST (18%)</span>
-                <span className="font-medium">₹{gst}</span>
-              </div>
               <div className="flex justify-between text-lg md:text-2xl font-bold text-gray-800 pt-3 border-t border-gray-200">
                 <span>Total Amount</span>
-                <span className="text-[#808000]">₹{total}</span>
+                <span className="text-[#808000]">₹{subtotal}</span>
               </div>
             </div>
           </GlassCard>
@@ -191,7 +186,7 @@ export const PaymentPage = () => {
                 loading={processing}
                 disabled={processing}
               >
-                {processing ? 'Booking...' : `Book Onsite - ₹${total}`}
+                {processing ? 'Booking...' : `Book Onsite - ₹${subtotal}`}
               </Button>
               
               <div className="flex items-center justify-center gap-2 text-xs md:text-sm text-gray-500">

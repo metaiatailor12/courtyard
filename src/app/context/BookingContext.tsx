@@ -237,6 +237,18 @@ const getDateRange = (startDate: string, endDate: string) => {
   return dates;
 };
 
+const getSlotPrice = (slot: TimeSlot, pricing: BookingContextType['appSettings']['pricing']) => {
+  const date = parseDateKey(slot.date);
+  const dayOfWeek = date.getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+  if (isWeekend) {
+    return pricing.peak;
+  }
+
+  return pricing.offPeak;
+};
+
 export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [selectedSlots, setSelectedSlots] = useState<TimeSlot[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -276,7 +288,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   };
 
-  const fetchSettings = async () => {
+  const fetchSettings = async (options?: { force?: boolean }) => {
     try {
       const payload = await fetchJsonWithCache<{ settings?: {
         pricing?: typeof DEFAULT_APP_SETTINGS.pricing;
@@ -286,6 +298,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       } }>(`${getAPI_BASE_URL()}/settings`, {
         cacheKey: SETTINGS_CACHE_KEY,
         ttlMs: SETTINGS_CACHE_TTL_MS,
+        force: options?.force,
       });
 
       if (!payload) {
@@ -359,7 +372,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     const handleSettingsUpdated = () => {
       invalidateCachedJson(SETTINGS_CACHE_KEY);
-      void fetchSettings();
+      void fetchSettings({ force: true });
     };
 
     window.addEventListener('focus', handleFocus);
@@ -373,6 +386,13 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       unsubscribe();
     };
   }, [auth]);
+
+  useEffect(() => {
+    setSelectedSlots(prev => prev.map(slot => ({
+      ...slot,
+      price: getSlotPrice(slot, appSettings.pricing),
+    })));
+  }, [appSettings.pricing]);
 
   const isSlotBooked = (date: string, court: number, time: string) => {
     const normalizedTime = normalizeTimeSlot(time);
@@ -565,9 +585,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const getTotalAmount = () => {
-    const subtotal = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
-    const gst = subtotal * 0.18;
-    return subtotal + gst;
+    return selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
   };
 
   return (

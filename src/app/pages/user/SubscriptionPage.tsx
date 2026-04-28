@@ -113,8 +113,6 @@ export const SubscriptionPage = () => {
   };
 
   const handleSubscribe = async () => {
-
-  const handleSubscribe = async () => {
     if (!user) {
       navigate('/user/login');
       return;
@@ -164,55 +162,6 @@ export const SubscriptionPage = () => {
       setProcessing(false);
     }
   };
-    if (!startDate || !selectedCourt || !selectedTimeSlot) {
-      showErrorToast('Incomplete Selection', 'Please select a start date, court, and time slot before subscribing.');
-      return;
-    }
-
-    if (conflictingDates.length > 0) {
-      showErrorToast('Slot Unavailable', `This court and time slot is already booked on ${conflictingDates.length} date(s). Please choose another slot.`);
-      return;
-    }
-
-    setProcessing(true);
-
-    try {
-      if (method === 'online') {
-        // Mock payment processing
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-
-      const subscription = await createSubscription({
-        courtName: selectedCourt,
-        court: Number(selectedCourt.replace('Court ', '')),
-        timeSlot: selectedTimeSlot,
-        startDate,
-        endDate: calculateEndDate(startDate),
-        weekdaysCount: calculateWeekdays(),
-        amount: subscriptionPrice,
-        status: 'active',
-        paymentId: `ONSITE-${Date.now()}`,
-        paymentMethod: 'onsite',
-        paymentStatus: 'pending',
-        userName: user.name,
-        userEmail: user.email,
-        userPhone: user.phone,
-      });
-
-      console.log('Subscription created:', subscription);
-
-      showSuccessToast('Subscription Reserved', 'Please pay at the venue.');
-      if (subscription.confirmationEmailSent === false) {
-        showErrorToast('Email Not Sent', 'Your subscription was saved, but the confirmation email could not be sent.');
-      }
-      navigate('/user/profile');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Subscription could not be completed';
-      showErrorToast('Subscription Failed', message);
-    } finally {
-      setProcessing(false);
-    }
-  };
 
   const endDate = calculateEndDate(startDate);
   const weekdaysCount = calculateWeekdays();
@@ -225,7 +174,7 @@ export const SubscriptionPage = () => {
         <div className="mb-6 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Monthly Subscription</h1>
           <p className="text-sm md:text-base text-gray-600">Subscribe and secure your favorite court & time slot for 30 days</p>
-                  <p className="text-sm md:text-base text-gray-600">Online payments are temporarily closed. Subscribe and pay at the venue.</p>
+          <p className="text-sm md:text-base text-gray-600">Online payments are temporarily closed. Subscribe and pay at the venue.</p>
         </div>
 
         {/* Progress Steps */}
@@ -458,15 +407,9 @@ export const SubscriptionPage = () => {
                     <span className="text-gray-600">Monthly Subscription</span>
                     <span className="font-medium">₹{subscriptionPrice}</span>
                   </div>
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-gray-600">GST (18%)</span>
-                    <span className="font-medium">₹{Math.round(subscriptionPrice * 0.18)}</span>
-                  </div>
                   <div className="flex justify-between items-center pt-3 border-t border-gray-200">
                     <span className="text-lg font-semibold">Total Amount</span>
-                    <span className="text-2xl font-bold text-[#808000]">
-                      ₹{subscriptionPrice + Math.round(subscriptionPrice * 0.18)}
-                    </span>
+                    <span className="text-2xl font-bold text-[#808000]">₹{subscriptionPrice}</span>
                   </div>
                 </div>
 
@@ -490,7 +433,7 @@ export const SubscriptionPage = () => {
                   <h3 className="font-semibold">Payment Method</h3>
                   <p className="text-sm text-gray-600">Choose online or onsite payment</p>
                 </div>
-                  <p className="text-sm text-gray-600">Online payments are temporarily unavailable</p>
+                <p className="text-sm text-gray-600">Online payments are temporarily unavailable</p>
               </div>
 
               <div className="space-y-3 mb-4">
@@ -516,7 +459,7 @@ export const SubscriptionPage = () => {
                     loading={processing}
                     disabled={processing || conflictingDates.length > 0}
                   >
-                    {processing ? 'Processing...' : `Reserve Onsite - ₹${subscriptionPrice + Math.round(subscriptionPrice * 0.18)}`}
+                    {processing ? 'Processing...' : `Reserve Onsite - ₹${subscriptionPrice}`}
                   </Button>
                 </div>
               </div>
