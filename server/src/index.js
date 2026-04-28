@@ -14,9 +14,26 @@ const { initializeEmailService } = require('./emailService');
 
 const app = express();
 
+const allowedOrigins = String(env.clientOrigin || '')
+  .split(',')
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
 app.use(helmet());
 app.use(cors({
-  origin: env.clientOrigin,
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (!allowedOrigins.length || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin not allowed by CORS: ${origin}`));
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '12mb' }));

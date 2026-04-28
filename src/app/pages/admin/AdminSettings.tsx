@@ -8,6 +8,7 @@ import { Input } from '../../components/Input';
 import { useLandingPage } from '../../context/LandingPageContext';
 import { useBooking } from '../../context/BookingContext';
 import { useAuth } from '../../context/AuthContext';
+import { getAPI_BASE_URL } from '../../lib/apiConfig';
 import { getCurrentUserToken } from '../../lib/firebaseClient';
 import { invalidateCachedJson } from '../../lib/responseCache';
 import { Calendar, CreditCard, Shield, Zap, Users, Award } from 'lucide-react';
@@ -91,7 +92,7 @@ export const AdminSettings = () => {
       throw new Error('Please sign in again to save settings');
     }
 
-    const response = await fetch('/api/settings', {
+    const response = await fetch(`${getAPI_BASE_URL()}/settings`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -244,7 +245,7 @@ export const AdminSettings = () => {
       }
 
       const image = await readFileAsDataUrl(file);
-      const response = await fetch('/api/admin/gallery/upload', {
+      const response = await fetch(`${getAPI_BASE_URL()}/admin/gallery/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
