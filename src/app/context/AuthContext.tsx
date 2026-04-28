@@ -3,7 +3,6 @@ import {
   auth,
   db,
   isFirebaseConfigured,
-  requiresEmailVerification,
   getCurrentUser,
 } from '../lib/firebaseClient';
 import { getAPI_BASE_URL } from '../lib/apiConfig';
@@ -94,6 +93,25 @@ const sendBackendVerificationEmail = async (email: string, name?: string) => {
   if (!response.ok) {
     throw new Error(payload?.error?.message || payload?.message || 'Failed to send verification email');
   }
+};
+
+const checkBackendEmailVerification = async (email: string) => {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) {
+    return false;
+  }
+
+  const response = await fetch(`${getAPI_BASE_URL()}/auth/verify-email-check?email=${encodeURIComponent(normalizedEmail)}`, {
+    method: 'GET',
+    cache: 'no-store',
+  });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    return false;
+  }
+
+  return payload?.verified === true;
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -253,8 +271,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         throw new Error('Admin access required for this portal');
       }
 
-      // Check if email verification is required for users
-      if (requiresEmailVerification && role === 'user' && !nextUser.emailVerified) {
+      // Email/password users must verify before logging in.
+      if (role === 'user' && !nextUser.emailVerified) {
+        const backendVerified = await checkBackendEmailVerification(email);
+        if (backendVerified) {
+          setUser({ ...nextUser, emailVerified: true });
+          return;
+        }
+
         await signOut(auth);
         throw new Error('Please verify your email before logging in. Check your inbox for the verification link.');
       }
@@ -287,11 +311,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
 
     const normalizedEmail = email.trim().toLowerCase();
+    let createdAccount = false;
 
     try {
       // Create new account
       const result = await createUserWithEmailAndPassword(auth, normalizedEmail, password);
       const newUser = result.user;
+      createdAccount = true;
 
       // Create user profile in Firestore
       await setDoc(doc(db, 'users', newUser.uid), {
@@ -304,28 +330,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         updatedAt: new Date(),
       });
 
-      // Send verification email if required
-      if (requiresEmailVerification) {
+      // Email/password signups always require verification before login.
+      try {
+        await sendBackendVerificationEmail(normalizedEmail, name);
+      } catch (backendError) {
         try {
-          await sendBackendVerificationEmail(normalizedEmail, name);
-        } catch (backendError) {
-          try {
-            await sendEmailVerification(newUser);
-          } catch {
-            throw backendError;
-          }
+          await sendEmailVerification(newUser);
+        } catch {
+          throw backendError;
         }
-        return 'verification-required';
       }
 
-      const nextUser = await buildUserFromFirebase(newUser as any, 'user');
-      if (!nextUser) {
-        throw new Error('Unable to load user profile');
-      }
-
-      setUser(nextUser);
-      return 'signed-in';
+      await signOut(auth);
+      return 'verification-required';
     } catch (error: any) {
+      if (createdAccount && auth.currentUser) {
+        await signOut(auth).catch(() => {
+          // Ignore sign-out errors after a failed signup attempt.
+        });
+      }
+
       if (error.code === 'auth/email-already-in-use') {
         throw new Error('This email is already registered. Please log in instead.');
       }
@@ -536,7 +560,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     return {
       user: nextUser,
-      verificationRequired: requiresEmailVerification && !user.emailVerified,
+      verificationRequired: false,
     };
   };
 

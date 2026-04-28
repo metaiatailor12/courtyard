@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useNavigate } from 'react-router';
 
 type BookingStatusItem = {
   name: string;
@@ -11,6 +12,7 @@ interface BookingStatusChartProps {
 }
 
 export const BookingStatusChart = memo(({ data }: BookingStatusChartProps) => {
+  const navigate = useNavigate();
   const chartData = data && data.length ? data : [];
   const total = chartData.reduce((sum, item) => sum + item.value, 0);
 
@@ -73,7 +75,11 @@ export const BookingStatusChart = memo(({ data }: BookingStatusChartProps) => {
               <path
                 d={getArcPath(slice.startAngle, slice.endAngle, 25, 40)}
                 fill={slice.color}
-                className="transition-all duration-300 hover:opacity-80"
+                className="transition-all duration-300 hover:opacity-80 cursor-pointer"
+                onClick={() => navigate(`/admin/bookings?status=${String(slice.name).toLowerCase()}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/admin/bookings?status=${String(slice.name).toLowerCase()}`); }}
               />
             </g>
           ))}
@@ -82,7 +88,14 @@ export const BookingStatusChart = memo(({ data }: BookingStatusChartProps) => {
       
       <div className="mt-3 md:mt-4 space-y-2">
         {chartData.map((item, index) => (
-          <div key={`legend-${index}-${item.name}`} className="flex items-center justify-between">
+          <div
+            key={`legend-${index}-${item.name}`}
+            className="flex items-center justify-between cursor-pointer"
+            onClick={() => navigate(`/admin/bookings?status=${String(item.name).toLowerCase()}`)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/admin/bookings?status=${String(item.name).toLowerCase()}`); }}
+          >
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></div>
               <span className="text-xs md:text-sm text-gray-600">{item.name}</span>

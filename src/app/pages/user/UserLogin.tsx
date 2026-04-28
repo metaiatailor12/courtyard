@@ -6,7 +6,6 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { useAuth } from '../../context/AuthContext';
 import { showErrorToast, showInfoToast, showSuccessToast } from '../../utils/notificationHelpers';
-import { requiresEmailVerification } from '../../lib/firebaseClient';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -24,10 +23,6 @@ const mapLoginError = (message: string) => {
   }
 
   if (/email not confirmed|confirm your email/i.test(message)) {
-    if (!requiresEmailVerification) {
-      return 'Unable to sign in. Please contact support if this continues.';
-    }
-
     return 'Email not confirmed. We have sent a verification email. Please verify and try again.';
   }
 
@@ -63,17 +58,8 @@ export const UserLogin = () => {
       return;
     }
 
-    if (requiresEmailVerification) {
-      setGoogleLoggingIn(false);
-      window.sessionStorage.setItem(
-        'tcy.auth.notice',
-        `Verification email sent to ${user.email}. Please verify your email before continuing.`
-      );
-      showInfoToast('Verification required', 'Please verify your email from your inbox to continue.');
-      navigate('/user/login', { replace: true });
-    } else {
-      navigate('/user/home', { replace: true });
-    }
+    setGoogleLoggingIn(false);
+    navigate('/user/home', { replace: true });
   }, [user, googleLoggingIn, navigate]);
 
   useEffect(() => {
@@ -127,7 +113,7 @@ export const UserLogin = () => {
 
       if (/please verify your email/i.test(rawMessage)) {
         showInfoToast('Verification required', 'Check your inbox for the verification email. Once verified, you can log in.');
-      } else if (requiresEmailVerification && /email not confirmed|confirm your email/i.test(rawMessage)) {
+      } else if (/email not confirmed|confirm your email/i.test(rawMessage)) {
         showInfoToast('Verification required', 'Please verify your email before logging in.');
       } else {
         showErrorToast('Login failed', message);
@@ -137,7 +123,7 @@ export const UserLogin = () => {
     }
   };
 
-  const isEmailUnconfirmedError = requiresEmailVerification && /email not confirmed|confirm your email|please verify your email/i.test(errors.password || '');
+  const isEmailUnconfirmedError = /email not confirmed|confirm your email|please verify your email/i.test(errors.password || '');
 
   const handleResendVerification = async () => {
     const normalizedEmail = formData.email.trim().toLowerCase();

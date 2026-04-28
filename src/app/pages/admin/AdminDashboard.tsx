@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Users, Calendar, TrendingUp, DollarSign, Clock, CheckCircle } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
@@ -13,7 +13,6 @@ export const AdminDashboard = () => {
   const { bookings, subscriptions, appSettings } = useBooking();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [showRevenueModal, setShowRevenueModal] = useState(false);
 
   const currentMonthKey = useMemo(() => format(new Date(), 'yyyy-MM'), []);
   const todayKey = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
@@ -199,7 +198,10 @@ export const AdminDashboard = () => {
           <GlassCard className="p-4 md:p-6 lg:col-span-2">
             <div className="flex items-center justify-between mb-4 md:mb-6">
               <h2 className="text-lg md:text-xl font-semibold">Upcoming Bookings</h2>
-              <button className="text-xs md:text-sm text-[#808000] hover:text-[#5D5E1F] font-medium">
+              <button
+                onClick={() => navigate('/admin/bookings')}
+                className="text-xs md:text-sm text-[#808000] hover:text-[#5D5E1F] font-medium"
+              >
                 View All
               </button>
             </div>
@@ -210,7 +212,14 @@ export const AdminDashboard = () => {
                 </div>
               ) : (
                 upcomingBookings.map((booking) => (
-                  <div key={booking.id} className="flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                  <div
+                    key={booking.id}
+                    onClick={() => navigate(`/admin/bookings?view=${booking.id}`)}
+                    className="cursor-pointer select-none flex items-center justify-between p-3 md:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate(`/admin/bookings?view=${booking.id}`); }}
+                  >
                     <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
                       <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
                         <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
@@ -239,7 +248,7 @@ export const AdminDashboard = () => {
                 <span>View All Bookings</span>
               </button>
               <button 
-                onClick={() => setShowRevenueModal(true)}
+                onClick={() => navigate('/admin/revenue')}
                 className="w-full p-3 md:p-4 bg-gradient-to-r from-green-900 to-green-800 text-white rounded-xl hover:from-green-950 hover:to-green-900 transition-all flex items-center justify-center md:justify-start gap-3 text-sm md:text-base"
               >
                 <DollarSign className="w-4 h-4 md:w-5 md:h-5" />
@@ -256,83 +265,6 @@ export const AdminDashboard = () => {
           </GlassCard>
         </div>
       </div>
-
-      {/* Revenue Report Modal */}
-      {showRevenueModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">Revenue Report</h2>
-                <p className="text-gray-600 text-sm mt-1">Detailed financial analysis</p>
-              </div>
-              <button
-                onClick={() => setShowRevenueModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-6">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-green-50 to-yellow-50 p-6 rounded-xl border border-green-100">
-                  <p className="text-green-900 text-sm font-medium mb-2">Total Revenue</p>
-                  <p className="text-3xl font-bold text-gray-800">₹{liveStats.totalRevenue.toLocaleString()}</p>
-                  <p className="text-xs text-green-900 mt-2">Live current month value</p>
-                </div>
-                <div className="bg-gradient-to-br from-blue-50 to-yellow-50 p-6 rounded-xl border border-blue-100">
-                  <p className="text-blue-600 text-sm font-medium mb-2">Total Bookings</p>
-                  <p className="text-3xl font-bold text-gray-800">{liveStats.totalBookings.toLocaleString()}</p>
-                  <p className="text-xs text-blue-600 mt-2">Live database count</p>
-                </div>
-                <div className="bg-gradient-to-br from-purple-50 to-violet-50 p-6 rounded-xl border border-purple-100">
-                  <p className="text-purple-600 text-sm font-medium mb-2">Avg. Booking Value</p>
-                  <p className="text-3xl font-bold text-gray-800">₹{liveStats.totalBookings > 0 ? Math.round(liveStats.totalRevenue / liveStats.totalBookings) : 0}</p>
-                  <p className="text-xs text-purple-600 mt-2">Calculated from live bookings</p>
-                </div>
-              </div>
-
-              {/* Revenue Breakdown */}
-              <div className="bg-gray-50 p-6 rounded-xl">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Revenue Breakdown</h3>
-                <div className="space-y-3">
-                  {[
-                    { label: 'Court Bookings', amount: liveStats.bookingRevenue, percentage: liveStats.totalRevenue > 0 ? (liveStats.bookingRevenue / liveStats.totalRevenue) * 100 : 0, color: 'bg-blue-500' },
-                    { label: 'Subscriptions', amount: liveStats.subscriptionRevenue, percentage: liveStats.totalRevenue > 0 ? (liveStats.subscriptionRevenue / liveStats.totalRevenue) * 100 : 0, color: 'bg-green-900' },
-                  ].map((item, index) => (
-                    <div key={index}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700">{item.label}</span>
-                        <span className="text-sm font-semibold text-gray-800">₹{item.amount.toLocaleString()}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className={`${item.color} h-2 rounded-full`} style={{ width: `${item.percentage}%` }}></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Monthly Comparison */}
-              <div className="bg-gray-50 p-6 rounded-xl">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Monthly Comparison</h3>
-                <div className="space-y-2">
-                  {revenueChartData.map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg">
-                      <span className="text-sm font-medium text-gray-700">{item.month}</span>
-                      <span className="text-sm font-semibold text-green-900">₹{item.revenue.toLocaleString()}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );

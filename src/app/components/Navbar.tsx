@@ -159,6 +159,16 @@ export const Navbar = () => {
                   Messages
                 </Link>
                 
+                {/* Quick Revenue Menu */}
+                <button
+                  onClick={() => navigate('/admin/revenue')}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors hover:bg-gray-100 text-gray-700"
+                  title="Revenue"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 100 7H15a3 3 0 110 6H7"/></svg>
+                  <span className="hidden md:inline text-sm">Revenue</span>
+                </button>
+                
                 {/* Notification Center for Admin */}
                 {user && <NotificationCenter />}
                 

@@ -120,6 +120,21 @@ export interface Subscription {
   confirmationEmailSent?: boolean;
 }
 
+export interface CourtBlock {
+  id: string;
+  date: string;
+  blockType: 'day' | 'hour';
+  courts: number[];
+  allCourts: boolean;
+  timeSlot?: string | null;
+  timeSlotKey?: string | null;
+  reason?: string | null;
+  createdBy?: string | null;
+  createdByName?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface BookingContextType {
   appSettings: {
     pricing: { offPeak: number; peak: number; subscription: number };
@@ -131,6 +146,7 @@ interface BookingContextType {
   selectedSlots: TimeSlot[];
   bookings: Booking[];
   subscriptions: Subscription[];
+  courtBlocks: CourtBlock[];
   addSlot: (slot: TimeSlot) => void;
   removeSlot: (slotId: string) => void;
   clearSlots: () => void;
@@ -140,6 +156,8 @@ interface BookingContextType {
   cancelSubscription: (subscriptionId: string, options?: { asAdmin?: boolean }) => Promise<void>;
   updateBooking: (bookingId: string, updates: { paymentStatus?: 'paid' | 'pending' }) => Promise<Booking>;
   updateSubscription: (subscriptionId: string, updates: any, options?: { asAdmin?: boolean }) => Promise<Subscription>;
+  createCourtBlock: (block: Omit<CourtBlock, 'id' | 'createdAt' | 'updatedAt'>) => Promise<CourtBlock>;
+  deleteCourtBlock: (blockId: string) => Promise<void>;
   isSlotBooked: (date: string, court: number, time: string) => boolean;
   getTotalAmount: () => number;
 }
@@ -261,6 +279,7 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [selectedSlots, setSelectedSlots] = useState<TimeSlot[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [courtBlocks, setCourtBlocks] = useState<CourtBlock[]>([]);
   const [appSettings, setAppSettings] = useState(DEFAULT_APP_SETTINGS);
 
   const getAccessToken = async () => {
@@ -276,9 +295,10 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       const accessToken = await getAccessToken();
       const headers = { Authorization: `Bearer ${accessToken}` };
 
-      const [bookingsResponse, subscriptionsResponse] = await Promise.all([
+      const [bookingsResponse, subscriptionsResponse, blocksResponse] = await Promise.all([
         fetch(`${getAPI_BASE_URL()}/bookings`, { headers }),
         fetch(`${getAPI_BASE_URL()}/subscriptions`, { headers }),
+        fetch(`${getAPI_BASE_URL()}/court-blocks`),
       ]);
 
       if (bookingsResponse.ok) {
@@ -290,9 +310,15 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         const payload = await subscriptionsResponse.json();
         setSubscriptions(payload.subscriptions || []);
       }
+
+      if (blocksResponse.ok) {
+        const payload = await blocksResponse.json();
+        setCourtBlocks(Array.isArray(payload.blocks) ? payload.blocks : []);
+      }
     } catch {
       setBookings([]);
       setSubscriptions([]);
+      setCourtBlocks([]);
     }
   };
 
@@ -430,6 +456,27 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
       return true;
     }
 
+    const courtBlockConflict = courtBlocks.some(block => {
+      if (block.date !== date) {
+        return false;
+      }
+
+      const courtMatches = block.allCourts || block.courts.includes(court);
+      if (!courtMatches) {
+        return false;
+      }
+
+      if (block.blockType === 'day') {
+        return true;
+      }
+
+      return normalizeTimeSlot(block.timeSlot || '') === normalizedTime;
+    });
+
+    if (courtBlockConflict) {
+      return true;
+    }
+
     return subscriptions.some(subscription => {
       if (subscription.status !== 'active') {
         return false;
@@ -512,7 +559,35 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     const normalizedTimeSlot = normalizeTimeSlot(subscription.timeSlot);
     const dates = getDateRange(subscription.startDate, subscription.endDate).filter(isWeekday);
-    const conflictingDate = dates.find(date => isSlotBooked(date, subscription.court, normalizedTimeSlot));
+    const conflictingDate = dates.find(date => {
+      const bookingConflict = bookings.some(booking => {
+        if (booking.status === 'cancelled') {
+          return false;
+        }
+
+        return booking.slots.some(slot => slot.date === date && slot.court === subscription.court && normalizeTimeSlot(slot.time) === normalizedTimeSlot);
+      });
+
+      if (bookingConflict) {
+        return true;
+      }
+
+      return subscriptions.some(existingSubscription => {
+        if (existingSubscription.status !== 'active') {
+          return false;
+        }
+
+        if (existingSubscription.court !== subscription.court) {
+          return false;
+        }
+
+        if (normalizeTimeSlot(existingSubscription.timeSlot) !== normalizedTimeSlot) {
+          return false;
+        }
+
+        return isWithinInclusiveRange(date, existingSubscription.startDate, existingSubscription.endDate);
+      });
+    });
 
     if (conflictingDate) {
       throw new Error('This subscription slot is already booked for part of the selected month. Please choose a different court or time slot.');
@@ -541,6 +616,48 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
     setSubscriptions(prev => [newSubscription, ...prev.filter(existing => existing.id !== newSubscription.id)]);
 
     return newSubscription;
+  };
+
+  const createCourtBlock = async (block: Omit<CourtBlock, 'id' | 'createdAt' | 'updatedAt'>): Promise<CourtBlock> => {
+    const accessToken = await getAccessToken();
+    const response = await fetch(`${getAPI_BASE_URL()}/admin/court-blocks`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(block),
+    });
+
+    const payload = await parseApiPayload(response);
+    if (!response.ok || !payload?.block) {
+      throw new Error(getApiErrorMessage(response, payload, 'Unable to create court block'));
+    }
+
+    const createdBlock: CourtBlock = payload.block;
+    setCourtBlocks(prev => [createdBlock, ...prev.filter(existing => existing.id !== createdBlock.id)]);
+    await fetchData();
+
+    return createdBlock;
+  };
+
+  const deleteCourtBlock = async (blockId: string) => {
+    const accessToken = await getAccessToken();
+    const response = await fetch(`${getAPI_BASE_URL()}/admin/court-blocks/${blockId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const payload = await parseApiPayload(response);
+    if (!response.ok || !payload?.id) {
+      throw new Error(getApiErrorMessage(response, payload, 'Unable to delete court block'));
+    }
+
+    setCourtBlocks(prev => prev.filter(existing => existing.id !== blockId));
+    await fetchData();
   };
 
   const cancelBooking = async (bookingId: string, options?: { asAdmin?: boolean }) => {
@@ -648,15 +765,18 @@ export const BookingProvider: React.FC<{ children: ReactNode }> = ({ children })
         selectedSlots,
         bookings,
         subscriptions,
+        courtBlocks,
         addSlot,
         removeSlot,
         clearSlots,
         createBooking,
         createSubscription,
+        createCourtBlock,
         cancelBooking,
         cancelSubscription,
         updateSubscription,
         updateBooking,
+        deleteCourtBlock,
         isSlotBooked,
         getTotalAmount,
       }}

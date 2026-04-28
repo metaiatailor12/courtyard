@@ -6,7 +6,6 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { useAuth } from '../../context/AuthContext';
 import { showErrorToast, showSuccessToast, showInfoToast } from '../../utils/notificationHelpers';
-import { requiresEmailVerification } from '../../lib/firebaseClient';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^\+?[0-9\s()-]{10,16}$/;
@@ -74,17 +73,8 @@ export const UserRegister = () => {
       return;
     }
 
-    if (requiresEmailVerification) {
-      setGoogleLoggingIn(false);
-      window.sessionStorage.setItem(
-        'tcy.auth.notice',
-        `Verification email sent to ${user.email}. Please verify your email before continuing.`
-      );
-      showInfoToast('Verification required', 'Please verify your email from your inbox to continue.');
-      navigate('/user/login');
-    } else {
-      navigate('/user/home');
-    }
+    setGoogleLoggingIn(false);
+    navigate('/user/home');
   }, [user, googleLoggingIn, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -144,7 +134,7 @@ export const UserRegister = () => {
 
     try {
       const result = await register(normalizedName, normalizedEmail, normalizedPhone, formData.password);
-      if (requiresEmailVerification && result === 'verification-required') {
+      if (result === 'verification-required') {
         window.sessionStorage.setItem(
           'tcy.auth.notice',
           'Account created. We sent a verification link to your email. Verify your account, then log in.'

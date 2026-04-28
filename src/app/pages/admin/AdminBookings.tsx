@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router';
 import { Search, Calendar, Edit, Trash2, Eye, Repeat, X, Clock, User, MapPin, Phone, Plus, CheckCircle, Pause, Play } from 'lucide-react';
 import { format } from 'date-fns';
 import { Navbar } from '../../components/Navbar';
@@ -11,7 +12,9 @@ import { CreateBookingModal } from './CreateBookingModal';
 import { CreateSubscriptionModal } from './CreateSubscriptionModal';
 
 export const AdminBookings = () => {
-  const { bookings, subscriptions, cancelBooking, cancelSubscription, createBooking, createSubscription, updateBooking, updateSubscription } = useBooking();
+  const { bookings, subscriptions, appSettings, cancelBooking, cancelSubscription, createBooking, createSubscription, updateBooking, updateSubscription } = useBooking();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'bookings' | 'subscriptions'>('bookings');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
@@ -177,6 +180,29 @@ export const AdminBookings = () => {
       showErrorToast('Error', message);
     }
   };
+
+  // Auto-open details modal if ?view=<bookingId> is present in URL
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const viewId = params.get('view');
+    const statusParam = params.get('status');
+    if (viewId && bookings && bookings.length > 0) {
+      const found = bookings.find(b => String(b.id) === String(viewId));
+      if (found) {
+        setViewDetailsModal({ type: 'booking', data: found });
+        // remove query param
+        navigate(location.pathname, { replace: true });
+        return;
+      }
+    }
+    if (statusParam) {
+      const s = String(statusParam).toLowerCase();
+      if (s === 'upcoming' || s === 'completed' || s === 'cancelled' || s === 'all') {
+        setStatusFilter(s as any);
+      }
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.search, bookings, navigate, location.pathname]);
 
   const getStatusBadge = (status: string) => {
     const styles = {

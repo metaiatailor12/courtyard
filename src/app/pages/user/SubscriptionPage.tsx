@@ -13,7 +13,7 @@ import { showSuccessToast, showErrorToast } from '../../utils/notificationHelper
 export const SubscriptionPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { appSettings, createSubscription, isSlotBooked } = useBooking();
+  const { appSettings, courtBlocks, bookings, subscriptions, createSubscription } = useBooking();
   const bookingDisabled = Boolean(appSettings.bookingDisabled);
   const [step, setStep] = useState(1);
   const [startDate, setStartDate] = useState('');
@@ -76,15 +76,78 @@ export const SubscriptionPage = () => {
       return [] as string[];
     }
 
-    return subscriptionDates.filter(date => isSlotBooked(date, selectedCourtNumber, selectedTimeSlot));
-  }, [isSlotBooked, selectedCourtNumber, selectedTimeSlot, subscriptionDates, startDate]);
+    return subscriptionDates.filter(date => bookings.some(booking => {
+      if (booking.status === 'cancelled') {
+        return false;
+      }
+
+      return booking.slots.some(slot => slot.date === date && slot.court === selectedCourtNumber && slot.time === selectedTimeSlot);
+    }) || subscriptions.some(subscription => {
+      if (subscription.status !== 'active') {
+        return false;
+      }
+
+      if (subscription.court !== selectedCourtNumber) {
+        return false;
+      }
+
+      if (subscription.timeSlot !== selectedTimeSlot) {
+        return false;
+      }
+
+      return date >= subscription.startDate && date <= subscription.endDate;
+    }));
+  }, [bookings, selectedCourtNumber, selectedTimeSlot, subscriptionDates, startDate, subscriptions]);
+
+  const blockedDates = useMemo(() => {
+    if (!startDate || !selectedCourtNumber || !selectedTimeSlot) {
+      return [] as string[];
+    }
+
+    return subscriptionDates.filter((date) => courtBlocks.some((block) => {
+      if (block.date !== date) {
+        return false;
+      }
+
+      const courtMatches = block.allCourts || block.courts.includes(selectedCourtNumber);
+      if (!courtMatches) {
+        return false;
+      }
+
+      if (block.blockType === 'day') {
+        return true;
+      }
+
+      return block.timeSlot === selectedTimeSlot || block.timeSlotKey === selectedTimeSlot;
+    }));
+  }, [courtBlocks, selectedCourtNumber, selectedTimeSlot, startDate, subscriptionDates]);
 
   const isSelectedSlotUnavailable = (slot: string) => {
     if (!startDate || !selectedCourtNumber) {
       return false;
     }
 
-    return subscriptionDates.some(date => isSlotBooked(date, selectedCourtNumber, slot));
+    return subscriptionDates.some(date => bookings.some(booking => {
+      if (booking.status === 'cancelled') {
+        return false;
+      }
+
+      return booking.slots.some(existingSlot => existingSlot.date === date && existingSlot.court === selectedCourtNumber && existingSlot.time === slot);
+    }) || subscriptions.some(subscription => {
+      if (subscription.status !== 'active') {
+        return false;
+      }
+
+      if (subscription.court !== selectedCourtNumber) {
+        return false;
+      }
+
+      if (subscription.timeSlot !== slot) {
+        return false;
+      }
+
+      return date >= subscription.startDate && date <= subscription.endDate;
+    }));
   };
 
   useEffect(() => {
@@ -369,6 +432,18 @@ export const SubscriptionPage = () => {
                 </div>
               )}
 
+              {blockedDates.length > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm font-semibold text-blue-700 mb-2">Admin block detected</p>
+                  <p className="text-sm text-blue-600 mb-2">
+                    This subscription period includes {blockedDates.length} blocked date(s). Your subscription will be extended automatically.
+                  </p>
+                  <p className="text-xs text-blue-500">
+                    You can continue without changing the selection.
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <Button
                   variant="outline"
@@ -437,6 +512,15 @@ export const SubscriptionPage = () => {
                     <p className="text-sm font-semibold text-red-700 mb-1">Booking conflict detected</p>
                     <p className="text-sm text-red-600">
                       This subscription cannot be completed because the selected time slot is already booked for some dates in the period.
+                    </p>
+                  </div>
+                )}
+
+                {blockedDates.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm font-semibold text-blue-700 mb-1">Blocked dates will be compensated</p>
+                    <p className="text-sm text-blue-600">
+                      The subscription period includes {blockedDates.length} blocked date(s). The backend will extend the subscription automatically.
                     </p>
                   </div>
                 )}

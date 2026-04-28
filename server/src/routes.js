@@ -12,6 +12,9 @@ const {
 	replaceGalleryImages,
 	deleteGalleryImage,
 	getAvailability,
+	listCourtBlocks,
+	createCourtBlockRecord,
+	deleteCourtBlock,
 	createBookingRecord,
 	listBookings,
 	cancelBooking,
@@ -331,6 +334,11 @@ router.get('/availability', asyncHandler(async (req, res) => {
 	res.json({ availability });
 }));
 
+router.get('/court-blocks', asyncHandler(async (_req, res) => {
+	const blocks = await listCourtBlocks();
+	res.json({ blocks });
+}));
+
 router.get('/bookings', requireAuth, asyncHandler(async (req, res) => {
 	const bookings = await listBookings(req.auth, req.query || {});
 	res.json({ bookings });
@@ -443,6 +451,21 @@ router.post('/admin/bookings', requireAuth, requireRole('admin'), asyncHandler(a
 	]);
 
 	res.status(201).json({ booking: { ...booking, confirmationEmailSent, adminAlertEmailSent } });
+}));
+
+router.get('/admin/court-blocks', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => {
+	const blocks = await listCourtBlocks();
+	res.json({ blocks });
+}));
+
+router.post('/admin/court-blocks', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+	const result = await createCourtBlockRecord(req.body || {}, req.auth);
+	res.status(201).json(result);
+}));
+
+router.delete('/admin/court-blocks/:blockId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+	const result = await deleteCourtBlock(req.params.blockId, req.auth);
+	res.json(result);
 }));
 
 router.delete('/admin/bookings/:bookingId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {

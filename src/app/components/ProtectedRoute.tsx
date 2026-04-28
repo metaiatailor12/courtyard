@@ -1,7 +1,6 @@
 import { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
-import { requiresEmailVerification } from '../lib/firebaseClient';
 import { VerificationRequiredPage } from '../pages/VerificationRequiredPage';
 import { LoadingSpinner } from './LoadingSpinner';
 
@@ -16,7 +15,7 @@ interface ProtectedRouteProps {
  * 
  * Features:
  * - Redirects to login if not authenticated
- * - Shows verification required page if email not verified (when requiresEmailVerification is enabled)
+ * - Shows verification required page if email not verified for user accounts
  * - Enforces role-based access (admin vs user)
  * - Handles loading states gracefully
  */
@@ -28,10 +27,10 @@ export const ProtectedRoute = ({
   const navigate = useNavigate();
   const { user, loading } = useAuth();
 
-  // Determine if email verification is required
-  const emailVerificationRequired = forceEmailVerification !== undefined 
-    ? forceEmailVerification 
-    : requiresEmailVerification;
+  // Email verification is required for user accounts unless a route explicitly disables it.
+  const emailVerificationRequired = forceEmailVerification !== undefined
+    ? forceEmailVerification
+    : true;
 
   // Still loading - show spinner
   if (loading) {

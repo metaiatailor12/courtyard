@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, Download, Mail, Users } from 'lucide-react';
+import { ArrowLeft, Users } from 'lucide-react';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
@@ -132,22 +132,7 @@ export const AdminUsers = () => {
               </div>
             </div>
 
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                onClick={() => showErrorToast('Coming soon', 'Export users is not available yet.')}
-              >
-                <Download className="w-4 h-4" />
-                Export Users
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => showErrorToast('Coming soon', 'Notification broadcast is not available yet.')}
-              >
-                <Mail className="w-4 h-4" />
-                Send Notification
-              </Button>
-            </div>
+            <div />
           </div>
 
           <div className="space-y-3">

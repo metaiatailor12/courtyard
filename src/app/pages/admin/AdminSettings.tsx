@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { DollarSign, Save, Image, MapPin, Phone, Mail, Star, Clock, Layout, Plus, Trash2, Eye, Settings as SettingsIcon, Palette, Upload, Lock, Unlock } from 'lucide-react';
+import { DollarSign, Save, Image, MapPin, Phone, Mail, Star, Clock, Layout, Plus, Trash2, Eye, Settings as SettingsIcon, Palette, Upload } from 'lucide-react';
+import { format } from 'date-fns';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
@@ -38,17 +39,22 @@ export const AdminSettings = () => {
   const [activeTab, setActiveTab] = useState<'general' | 'landing'>('general');
   const navigate = useNavigate();
   const { content, updateContent } = useLandingPage();
-  const { appSettings } = useBooking();
+  const { appSettings, courtBlocks, createCourtBlock, deleteCourtBlock } = useBooking();
   const { user } = useAuth();
   const [landingFormData, setLandingFormData] = useState(content);
   const [showPreview, setShowPreview] = useState(false);
+  const [blockDate, setBlockDate] = useState('');
+  const [blockType, setBlockType] = useState<'day' | 'hour'>('day');
+  const [blockTimeSlot, setBlockTimeSlot] = useState('');
+  const [blockSelectedCourts, setBlockSelectedCourts] = useState<number[]>([]);
+  const [blockReason, setBlockReason] = useState('');
+  const [blocking, setBlocking] = useState(false);
 
   const [pricing, setPricing] = useState({
     weekdayPrice: appSettings.pricing.offPeak,
     weekendPrice: appSettings.pricing.peak,
     monthlySubscription: appSettings.pricing.subscription,
   });
-  const [bookingDisabled, setBookingDisabled] = useState(Boolean(appSettings.bookingDisabled));
 
   const [courtDetails, setCourtDetails] = useState({
     name: typeof appSettings.landing.venueName === 'string' ? appSettings.landing.venueName : '',
@@ -72,7 +78,6 @@ export const AdminSettings = () => {
       weekendPrice: appSettings.pricing.peak,
       monthlySubscription: appSettings.pricing.subscription,
     });
-    setBookingDisabled(Boolean(appSettings.bookingDisabled));
 
     setCourtDetails({
       name: typeof appSettings.landing.venueName === 'string' ? appSettings.landing.venueName : '',
@@ -83,6 +88,36 @@ export const AdminSettings = () => {
       rating: typeof appSettings.landing.venueRating === 'number' ? appSettings.landing.venueRating : 0,
     });
   }, [appSettings]);
+
+  useEffect(() => {
+    setBlockSelectedCourts(appSettings.courts.map((_, index) => index + 1));
+  }, [appSettings.courts]);
+
+  const courtOptions = useMemo(() => {
+    return appSettings.courts.map((courtName, index) => ({
+      value: index + 1,
+      label: courtName || `Court ${index + 1}`,
+    }));
+  }, [appSettings.courts]);
+
+  const timeOptions = useMemo(() => {
+    return Array.from(
+      { length: Math.max(0, appSettings.operatingHours.endHour - appSettings.operatingHours.startHour + 1) },
+      (_, index) => {
+        const hour24 = appSettings.operatingHours.startHour + index;
+        const startHour12 = hour24 % 12 || 12;
+        const startPeriod = hour24 >= 12 ? 'PM' : 'AM';
+        const endHour24 = (hour24 + 1) % 24;
+        const endHour12 = endHour24 % 12 || 12;
+        const endPeriod = endHour24 >= 12 ? 'PM' : 'AM';
+
+        return {
+          value: `${startHour12}:00 ${startPeriod} - ${endHour12}:00 ${endPeriod}`,
+          label: `${startHour12}:00 ${startPeriod} - ${endHour12}:00 ${endPeriod}`,
+        };
+      }
+    );
+  }, [appSettings.operatingHours.endHour, appSettings.operatingHours.startHour]);
 
   const saveSettings = async (payload: Record<string, unknown>) => {
     if (!user) {
@@ -147,26 +182,6 @@ export const AdminSettings = () => {
     }
   };
 
-  const handleSaveBookingLock = async () => {
-    try {
-      const response = await saveSettings({
-        bookingDisabled,
-      });
-
-      if (typeof response?.settings?.bookingDisabled === 'boolean') {
-        setBookingDisabled(response.settings.bookingDisabled);
-      }
-
-      setSaved(true);
-      showSuccessToast(bookingDisabled ? 'Bookings paused successfully!' : 'Bookings resumed successfully!');
-      setTimeout(() => setSaved(false), 2000);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to update booking lock';
-      showErrorToast('Save failed', message);
-      console.error('Failed to update booking lock', error);
-    }
-  };
-
   const handleSaveDetails = async () => {
     try {
       const response = await saveSettings({
@@ -200,6 +215,47 @@ export const AdminSettings = () => {
       const message = error instanceof Error ? error.message : 'Unable to save court details';
       showErrorToast('Save failed', message);
       console.error('Failed to save court details', error);
+    }
+  };
+
+  const handleCreateCourtBlock = async () => {
+    if (!blockDate) {
+      showErrorToast('Missing date', 'Please choose a date to block.');
+      return;
+    }
+
+    if (!blockSelectedCourts.length) {
+      showErrorToast('Missing courts', 'Please select at least one court.');
+      return;
+    }
+
+    if (blockType === 'hour' && !blockTimeSlot) {
+      showErrorToast('Missing time slot', 'Please select an hour to block.');
+      return;
+    }
+
+    try {
+      setBlocking(true);
+      const block = await createCourtBlock({
+        date: blockDate,
+        blockType,
+        courts: blockSelectedCourts,
+        allCourts: blockSelectedCourts.length === appSettings.courts.length,
+        timeSlot: blockType === 'hour' ? blockTimeSlot : null,
+        reason: blockReason || null,
+      });
+
+      showSuccessToast('Court blocked', `${block.blockType === 'day' ? 'Full-day' : 'Hourly'} block created successfully.`);
+      setBlockDate('');
+      setBlockType('day');
+      setBlockTimeSlot('');
+      setBlockReason('');
+      setBlockSelectedCourts(appSettings.courts.map((_, index) => index + 1));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to create court block';
+      showErrorToast('Error', message);
+    } finally {
+      setBlocking(false);
     }
   };
 
@@ -413,43 +469,119 @@ export const AdminSettings = () => {
             </GlassCard>
 
             <GlassCard className="p-6">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                  {bookingDisabled ? <Lock className="w-6 h-6 text-red-700" /> : <Unlock className="w-6 h-6 text-green-700" />}
-                </div>
+              <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
                 <div>
-                  <h2 className="text-xl font-semibold">Booking Control</h2>
-                  <p className="text-sm text-gray-600">Pause or resume all customer bookings</p>
+                  <h2 className="text-xl font-semibold text-gray-800">Court Block Manager</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Block one court, multiple courts, or all three courts for a full day or a selected hour. No payment is collected for blocks.
+                  </p>
+                </div>
+                <div className="text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                  Existing subscription holders on a blocked weekday get an automatic extension.
                 </div>
               </div>
 
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 mb-4">
-                <label className="flex items-start gap-3 cursor-pointer">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Block date</label>
                   <input
-                    type="checkbox"
-                    checked={bookingDisabled}
-                    onChange={(e) => setBookingDisabled(e.target.checked)}
-                    className="mt-1 h-4 w-4 rounded border-gray-300 text-red-700 focus:ring-red-600"
+                    type="date"
+                    value={blockDate}
+                    onChange={(e) => setBlockDate(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#808000] focus:outline-none focus:ring-2 focus:ring-[#808000]/20"
                   />
-                  <div>
-                    <p className="font-medium text-gray-800">
-                      {bookingDisabled ? 'Bookings are paused' : 'Bookings are open'}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      When paused, customers cannot create new court bookings or subscriptions. Admin actions still work.
-                    </p>
-                  </div>
-                </label>
-              </div>
+                </div>
 
-              <Button
-                variant="primary"
-                className="w-full"
-                onClick={handleSaveBookingLock}
-              >
-                <Save className="w-5 h-5" />
-                {saved ? 'Saved!' : (bookingDisabled ? 'Pause Bookings' : 'Open Bookings')}
-              </Button>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Block type</label>
+                    <select
+                      value={blockType}
+                      onChange={(e) => setBlockType(e.target.value === 'hour' ? 'hour' : 'day')}
+                      className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#808000] focus:outline-none focus:ring-2 focus:ring-[#808000]/20"
+                    >
+                      <option value="day">Entire day</option>
+                      <option value="hour">Specific hour</option>
+                    </select>
+                  </div>
+
+                  {blockType === 'hour' ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Hour</label>
+                      <select
+                        value={blockTimeSlot}
+                        onChange={(e) => setBlockTimeSlot(e.target.value)}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#808000] focus:outline-none focus:ring-2 focus:ring-[#808000]/20"
+                      >
+                        <option value="">Select hour</option>
+                        {timeOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600 flex items-center">
+                      Full-day blocks cover every operating hour.
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">Courts</label>
+                    <button
+                      type="button"
+                      onClick={() => setBlockSelectedCourts(appSettings.courts.map((_, index) => index + 1))}
+                      className="text-xs font-medium text-[#808000] hover:text-[#5D5E1F]"
+                    >
+                      Select all
+                    </button>
+                  </div>
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    {courtOptions.map((court) => (
+                      <label key={court.value} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
+                        <input
+                          type="checkbox"
+                          checked={blockSelectedCourts.includes(court.value)}
+                          onChange={(e) => {
+                            setBlockSelectedCourts((prev) => {
+                              if (e.target.checked) {
+                                return Array.from(new Set([...prev, court.value])).sort((a, b) => a - b);
+                              }
+
+                              return prev.filter((value) => value !== court.value);
+                            });
+                          }}
+                          className="h-4 w-4 rounded border-gray-300 text-[#808000] focus:ring-[#808000]"
+                        />
+                        <span>{court.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Reason / note</label>
+                  <textarea
+                    value={blockReason}
+                    onChange={(e) => setBlockReason(e.target.value)}
+                    rows={3}
+                    placeholder="Optional reason for the block"
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 focus:border-[#808000] focus:outline-none focus:ring-2 focus:ring-[#808000]/20"
+                  />
+                </div>
+
+                <Button
+                  onClick={handleCreateCourtBlock}
+                  loading={blocking}
+                  className="w-full md:w-auto"
+                >
+                  <Clock className="w-5 h-5" />
+                  Block Court Schedule
+                </Button>
+              </div>
             </GlassCard>
 
             {/* Court Details */}
@@ -511,6 +643,55 @@ export const AdminSettings = () => {
                   <Save className="w-5 h-5" />
                   {saved ? 'Saved!' : 'Save Details'}
                 </Button>
+              </div>
+            </GlassCard>
+
+            {/* Current Blocks */}
+            <GlassCard className="p-6 lg:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-800">Current Blocks</h2>
+                <span className="text-xs font-medium text-gray-500">{courtBlocks.length} active</span>
+              </div>
+
+              <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                {courtBlocks.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-6 text-sm text-gray-500">
+                    No court blocks have been created yet.
+                  </div>
+                ) : (
+                  courtBlocks.map((block) => (
+                    <div key={block.id} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-800">
+                            {format(new Date(block.date), 'MMM d, yyyy')} · {block.blockType === 'day' ? 'Full day' : block.timeSlot}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {block.allCourts
+                              ? 'All courts'
+                              : block.courts.map((court) => courtOptions.find((item) => item.value === court)?.label || `Court ${court}`).join(', ')}
+                          </p>
+                          {block.reason && <p className="text-sm text-gray-600 mt-2">{block.reason}</p>}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              await deleteCourtBlock(block.id);
+                              showSuccessToast('Block removed', 'Court block deleted successfully.');
+                            } catch (error) {
+                              const message = error instanceof Error ? error.message : 'Unable to delete court block';
+                              showErrorToast('Error', message);
+                            }
+                          }}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </GlassCard>
 

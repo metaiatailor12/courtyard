@@ -142,6 +142,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const GALLERY_COLLECTION = 'gallery';
+const COURT_BLOCKS_COLLECTION = 'court_blocks';
 const SITE_ASSETS_COLLECTION = 'site_assets';
 const DEFAULT_SITE_ASSETS = {
   heroImage: DEFAULT_LANDING.heroImage,
@@ -250,6 +251,236 @@ function normalizeSiteAssets(assets = {}) {
     heroImage: typeof assets.heroImage === 'string' && assets.heroImage.trim() ? assets.heroImage.trim() : DEFAULT_SITE_ASSETS.heroImage,
     aboutImage: typeof assets.aboutImage === 'string' && assets.aboutImage.trim() ? assets.aboutImage.trim() : DEFAULT_SITE_ASSETS.aboutImage,
   };
+}
+
+function isWithinInclusiveRange(dateKey, startDate, endDate) {
+  if (!dateKey || !startDate || !endDate) {
+    return false;
+  }
+
+  const target = new Date(`${dateKey}T12:00:00.000Z`).getTime();
+  const start = new Date(`${startDate}T12:00:00.000Z`).getTime();
+  const end = new Date(`${endDate}T12:00:00.000Z`).getTime();
+
+  if (Number.isNaN(target) || Number.isNaN(start) || Number.isNaN(end)) {
+    return false;
+  }
+
+  return target >= start && target <= end;
+}
+
+function addWeekdaysToDateKey(dateKey, weekdayCount) {
+  const current = new Date(`${dateKey}T12:00:00.000Z`);
+  let remaining = Math.max(0, Number(weekdayCount || 0));
+
+  while (remaining > 0) {
+    current.setUTCDate(current.getUTCDate() + 1);
+    const day = current.getUTCDay();
+    if (day !== 0 && day !== 6) {
+      remaining -= 1;
+    }
+  }
+
+  return current.toISOString().slice(0, 10);
+}
+
+function normalizeCourtSelection(courts, settings) {
+  const maxCourts = Array.isArray(settings?.courts) ? settings.courts.length : 0;
+  const allCourts = Array.from({ length: maxCourts }, (_, index) => index + 1);
+
+  if (!Array.isArray(courts) || !courts.length) {
+    return allCourts;
+  }
+
+  const selected = Array.from(new Set(courts.map((court) => Number(court)).filter((court) => Number.isInteger(court) && court >= 1 && court <= maxCourts)));
+  return selected.length ? selected : allCourts;
+}
+
+function mapCourtBlockDoc(doc) {
+  const data = doc.data() || {};
+  const courts = Array.isArray(data.courts)
+    ? data.courts.map((court) => Number(court)).filter((court) => Number.isInteger(court) && court > 0)
+    : [];
+
+  return {
+    id: doc.id,
+    date: String(data.date || ''),
+    blockType: data.blockType === 'hour' ? 'hour' : 'day',
+    courts,
+    allCourts: data.allCourts === true,
+    timeSlot: data.timeSlot || null,
+    timeSlotKey: data.timeSlotKey || null,
+    reason: data.reason || null,
+    createdBy: data.createdBy || null,
+    createdByName: data.createdByName || null,
+    createdAt: toIso(data.createdAt),
+    updatedAt: toIso(data.updatedAt),
+  };
+}
+
+function isCourtBlockApplicableToSlot(courtBlock, dateKey, courtNumber, slotTimeKey) {
+  if (!courtBlock || courtBlock.date !== dateKey) {
+    return false;
+  }
+
+  const blockCourts = Array.isArray(courtBlock.courts) ? courtBlock.courts : [];
+  const isCourtIncluded = courtBlock.allCourts === true || blockCourts.includes(Number(courtNumber));
+
+  if (!isCourtIncluded) {
+    return false;
+  }
+
+  if (courtBlock.blockType === 'day') {
+    return true;
+  }
+
+  const blockTimeKey = String(courtBlock.timeSlotKey || normalizeTimeRange(courtBlock.timeSlot || '')).trim();
+  return Boolean(blockTimeKey) && blockTimeKey === String(slotTimeKey || '').trim();
+}
+
+function isCourtBlockApplicableToSubscription(courtBlock, subscription, dateKey) {
+  if (!courtBlock || !subscription) {
+    return false;
+  }
+
+  if (!isWithinInclusiveRange(dateKey, subscription.startDate, subscription.endDate)) {
+    return false;
+  }
+
+  if (!isWeekday(dateKey)) {
+    return false;
+  }
+
+  const blockCourts = Array.isArray(courtBlock.courts) ? courtBlock.courts : [];
+  const isCourtIncluded = courtBlock.allCourts === true || blockCourts.includes(Number(subscription.court));
+
+  if (!isCourtIncluded) {
+    return false;
+  }
+
+  if (courtBlock.blockType === 'day') {
+    return true;
+  }
+
+  const blockTimeKey = String(courtBlock.timeSlotKey || normalizeTimeRange(courtBlock.timeSlot || '')).trim();
+  const subscriptionTimeKey = String(normalizeTimeRange(subscription.timeSlot || '')).trim();
+  return Boolean(blockTimeKey) && blockTimeKey === subscriptionTimeKey;
+}
+
+async function listCourtBlocks() {
+  const db = getDb();
+  const snapshot = await db.collection(COURT_BLOCKS_COLLECTION).get();
+
+  return snapshot.docs
+    .map(mapCourtBlockDoc)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+async function getCourtBlocksForDate(dateKey) {
+  const db = getDb();
+  const snapshot = await db.collection(COURT_BLOCKS_COLLECTION).where('date', '==', dateKey).get();
+
+  return snapshot.docs.map(mapCourtBlockDoc);
+}
+
+async function getRelevantCourtBlocks(dateKey, courtNumber, slotTimeKey) {
+  const blocks = await getCourtBlocksForDate(dateKey);
+  return blocks.filter(block => isCourtBlockApplicableToSlot(block, dateKey, courtNumber, slotTimeKey));
+}
+
+async function createCourtBlockRecord(payload, authUser) {
+  if (!authUser?.sub || authUser.role !== 'admin') {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  const db = getDb();
+  const settings = await getAppSettings();
+  const rawDate = String(payload?.date || '').trim();
+  const parsedDate = new Date(rawDate);
+  if (!rawDate || Number.isNaN(parsedDate.getTime())) {
+    throw new ApiError(400, 'A valid date is required');
+  }
+
+  const dateKey = toUtcDateKey(parsedDate);
+  const blockType = String(payload?.blockType || 'day').toLowerCase() === 'hour' ? 'hour' : 'day';
+  const courts = normalizeCourtSelection(payload?.courts, settings);
+
+  if (!courts.length) {
+    throw new ApiError(400, 'At least one court is required');
+  }
+
+  let timeSlot = null;
+  let timeSlotKey = null;
+  if (blockType === 'hour') {
+    timeSlot = String(payload?.timeSlot || '').trim();
+    if (!timeSlot) {
+      throw new ApiError(400, 'timeSlot is required for hour blocks');
+    }
+    timeSlotKey = normalizeTimeRange(timeSlot);
+  }
+
+  const reason = String(payload?.reason || '').trim();
+  const now = new Date();
+  const allCourts = courts.length === settings.courts.length;
+  const blockRef = db.collection(COURT_BLOCKS_COLLECTION).doc();
+  const blockPayload = {
+    date: dateKey,
+    blockType,
+    courts,
+    allCourts,
+    timeSlot,
+    timeSlotKey,
+    reason: reason || null,
+    createdBy: authUser.sub,
+    createdByName: authUser.name || authUser.email || 'Admin',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const activeSubscriptionsSnapshot = await db.collection('subscriptions').where('status', '==', 'active').get();
+  const affectedSubscriptions = activeSubscriptionsSnapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter(subscription => isCourtBlockApplicableToSubscription(blockPayload, subscription, dateKey));
+
+  const batch = db.batch();
+  batch.set(blockRef, blockPayload);
+
+  for (const subscription of affectedSubscriptions) {
+    const ref = db.collection('subscriptions').doc(subscription.id);
+    batch.update(ref, {
+      endDate: addWeekdaysToDateKey(subscription.endDate, 1),
+      weekdaysCount: Number(subscription.weekdaysCount || 0) + 1,
+      updatedAt: now,
+    });
+  }
+
+  await batch.commit();
+
+  return {
+    block: mapCourtBlockDoc(await blockRef.get()),
+    affectedSubscriptions: affectedSubscriptions.length,
+  };
+}
+
+async function deleteCourtBlock(blockId, authUser) {
+  if (!authUser?.sub || authUser.role !== 'admin') {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  if (!blockId) {
+    throw new ApiError(400, 'blockId is required');
+  }
+
+  const db = getDb();
+  const ref = db.collection(COURT_BLOCKS_COLLECTION).doc(blockId);
+  const doc = await ref.get();
+
+  if (!doc.exists) {
+    throw new ApiError(404, 'Court block not found');
+  }
+
+  await ref.delete();
+  return { id: blockId };
 }
 
 async function ensureSiteAssetsDoc() {
@@ -737,11 +968,21 @@ async function getAvailability(date, court) {
   );
 
   const bookedSlots = await getBookedSlotsForDate(dateKey);
+  const courtBlocks = await getCourtBlocksForDate(dateKey);
   const blockedKeys = new Set(
     bookedSlots
       .filter(slot => Number(slot.court) === courtNumber && slot.status === 'booked')
       .map(slot => slot.slotTimeKey)
   );
+
+  for (const block of courtBlocks) {
+    for (const slot of allSlots) {
+      const slotTimeKey = normalizeTimeRange(slot.time);
+      if (isCourtBlockApplicableToSlot(block, dateKey, courtNumber, slotTimeKey)) {
+        blockedKeys.add(slotTimeKey);
+      }
+    }
+  }
 
   if (isWeekday(dateKey)) {
     const subscriptions = await getActiveSubscriptions();
@@ -778,6 +1019,7 @@ async function assertNoSlotConflicts(slots) {
   const requestedKeys = new Set();
   const bookedDates = new Map();
   const currentContext = getCurrentUtcSlotContext();
+  const courtBlocks = await listCourtBlocks();
 
   for (const slot of slots) {
     if (isPastOrCurrentSlot(slot.date, slot.slotTimeKey, currentContext)) {
@@ -792,6 +1034,11 @@ async function assertNoSlotConflicts(slots) {
 
     if (!bookedDates.has(slot.date)) {
       bookedDates.set(slot.date, await getBookedSlotsForDate(slot.date));
+    }
+
+    const blockConflict = courtBlocks.find(block => isCourtBlockApplicableToSlot(block, slot.date, slot.court, slot.slotTimeKey));
+    if (blockConflict) {
+      throw new ApiError(409, `Slot ${slot.slotTime} on ${slot.date} is blocked by an admin court block`);
     }
 
     const dateSlots = bookedDates.get(slot.date) || [];
@@ -1038,8 +1285,23 @@ async function createSubscriptionRecord({ userId, userName, userEmail, userPhone
   }
 
   const timeKey = normalizeTimeRange(timeSlot);
-  const weekdayDates = getSubscriptionWeekdays(normalizedStart, normalizedEnd);
   const courtNumber = Number(court);
+  const courtBlocks = await listCourtBlocks();
+
+  let adjustedEnd = normalizedEnd;
+  let weekdayDates = getSubscriptionWeekdays(normalizedStart, adjustedEnd);
+
+  for (let iteration = 0; iteration < 10; iteration += 1) {
+    const blockedDates = weekdayDates.filter(dateKey => courtBlocks.some(block => isCourtBlockApplicableToSubscription(block, { court: courtNumber, timeSlot, startDate: normalizedStart, endDate: adjustedEnd }, dateKey)));
+
+    if (!blockedDates.length) {
+      break;
+    }
+
+    adjustedEnd = addWeekdaysToDateKey(adjustedEnd, blockedDates.length);
+    weekdayDates = getSubscriptionWeekdays(normalizedStart, adjustedEnd);
+  }
+
   const bookedSlotSnapshots = await Promise.all(weekdayDates.map(dateKey => db.collection('booking_slots').where('date', '==', dateKey).get()));
 
   for (let index = 0; index < weekdayDates.length; index += 1) {
@@ -1080,8 +1342,8 @@ async function createSubscriptionRecord({ userId, userName, userEmail, userPhone
     timeSlot,
     timeSlotKey: timeKey,
     startDate: normalizedStart,
-    endDate: normalizedEnd,
-    weekdaysCount: Number(weekdaysCount),
+    endDate: adjustedEnd,
+    weekdaysCount: weekdayDates.length,
     amount: canonicalSubscriptionAmount,
     status,
     paymentId: paymentId || null,
@@ -1703,6 +1965,9 @@ module.exports = {
   replaceGalleryImages,
   deleteGalleryImage,
   getAvailability,
+  listCourtBlocks,
+  createCourtBlockRecord,
+  deleteCourtBlock,
   createBookingRecord,
   listBookings,
   getBookingById,

@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { Calendar as CalendarIcon, Clock, Trash2, LogIn, UserPlus, ChevronDown } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Trash2, LogIn, UserPlus, ChevronDown, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '../../components/ui/calendar';
 import { Navbar } from '../../components/Navbar';
@@ -92,7 +92,7 @@ const generateTimeSlots = (
 
 export const BookingPage = () => {
   const navigate = useNavigate();
-  const { appSettings, selectedSlots, addSlot, removeSlot, isSlotBooked, createBooking } = useBooking();
+  const { appSettings, selectedSlots, addSlot, removeSlot, isSlotBooked, createBooking, bookings, subscriptions, courtBlocks } = useBooking();
   const bookingDisabled = Boolean(appSettings.bookingDisabled);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedCourt, setSelectedCourt] = useState(1);
@@ -169,8 +169,115 @@ export const BookingPage = () => {
 
   const totalAmount = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
 
+  const normalizeTimeSlot = (timeSlot: string) => {
+    const [startPart, endPart] = timeSlot.split(' - ').map(part => part.trim());
+
+    if (endPart) {
+      return `${startPart} - ${endPart}`;
+    }
+
+    const startMatch = startPart.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!startMatch) {
+      return timeSlot;
+    }
+
+    const startHour = Number(startMatch[1]);
+    const meridiem = startMatch[3].toUpperCase();
+    let hour24 = startHour % 12;
+
+    if (meridiem === 'PM') {
+      hour24 += 12;
+    }
+
+    const endHour24 = (hour24 + 1) % 24;
+    const endMeridiem = endHour24 >= 12 ? 'PM' : 'AM';
+    const endHour12 = endHour24 % 12 || 12;
+
+    return `${startPart} - ${endHour12}:00 ${endMeridiem}`;
+  };
+
+  const blockedSelectedSlots = useMemo(() => {
+    return selectedSlots
+      .map((slot) => {
+        const humanDate = format(new Date(slot.date), 'MMM d, yyyy');
+        const normalizedTime = normalizeTimeSlot(slot.time);
+
+        const bookingConflict = bookings.some((booking) => {
+          if (booking.status === 'cancelled') {
+            return false;
+          }
+
+          return booking.slots.some((existingSlot) => (
+            existingSlot.date === slot.date
+            && existingSlot.court === slot.court
+            && normalizeTimeSlot(existingSlot.time) === normalizedTime
+          ));
+        });
+
+        if (bookingConflict) {
+          return { id: slot.id, message: `Slot ${slot.time} on ${humanDate} is already booked.` };
+        }
+
+        const blockedByCourtBlock = courtBlocks.some((block) => {
+          if (block.date !== slot.date) {
+            return false;
+          }
+
+          const courtMatches = block.allCourts || block.courts.includes(slot.court);
+          if (!courtMatches) {
+            return false;
+          }
+
+          if (block.blockType === 'day') {
+            return true;
+          }
+
+          return normalizeTimeSlot(block.timeSlot || '') === normalizedTime;
+        });
+
+        if (blockedByCourtBlock) {
+          return { id: slot.id, message: `Slot ${slot.time} on ${humanDate} is blocked by an admin court block.` };
+        }
+
+        const blockedBySubscription = subscriptions.some((subscription) => {
+          if (subscription.status !== 'active') {
+            return false;
+          }
+
+          if (subscription.court !== slot.court) {
+            return false;
+          }
+
+          if (normalizeTimeSlot(subscription.timeSlot) !== normalizedTime) {
+            return false;
+          }
+
+          const selectedDate = new Date(slot.date);
+          const startDate = new Date(`${subscription.startDate}T12:00:00`);
+          const endDate = new Date(`${subscription.endDate}T12:00:00`);
+
+          if (selectedDate < startDate || selectedDate > endDate) {
+            return false;
+          }
+
+          const day = selectedDate.getDay();
+          return day !== 0 && day !== 6;
+        });
+
+        if (blockedBySubscription) {
+          return { id: slot.id, message: `Slot ${slot.time} on ${humanDate} is blocked by an active subscription.` };
+        }
+
+        return null;
+      })
+      .filter((item): item is { id: string; message: string } => Boolean(item));
+  }, [bookings, courtBlocks, selectedSlots, subscriptions]);
+
+  const firstBlockedSlotMessage = blockedSelectedSlots[0]?.message || '';
+
   const handleProceedToPayment = () => {
     if (bookingDisabled) return;
+    if (blockedSelectedSlots.length > 0) return;
     if (selectedSlots.length > 0) {
       if (!user) {
         setShowLoginPrompt(true);
@@ -182,6 +289,14 @@ export const BookingPage = () => {
 
   const handleBookOnsiteNow = async () => {
     if (bookingDisabled) return;
+    if (blockedSelectedSlots.length > 0) {
+      addNotification({
+        type: 'error',
+        title: 'Slot unavailable',
+        message: firstBlockedSlotMessage || 'One or more selected slots are no longer available.',
+      });
+      return;
+    }
     if (selectedSlots.length === 0) {
       return;
     }
@@ -505,6 +620,22 @@ export const BookingPage = () => {
                 </div>
               ) : (
                 <>
+                  {blockedSelectedSlots.length > 0 && (
+                    <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-red-600" />
+                        <div>
+                          <p className="font-semibold text-red-900">Selected slot unavailable</p>
+                          <ul className="mt-2 space-y-1 pl-4 list-disc">
+                            {blockedSelectedSlots.map(({ id, message }) => (
+                              <li key={id}>{message}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2 md:space-y-3 mb-4 max-h-48 md:max-h-64 overflow-y-auto">
                     {selectedSlots.map((slot) => (
                       <div
@@ -544,17 +675,27 @@ export const BookingPage = () => {
                     variant="primary"
                     className="w-full mt-4 md:mt-6 text-sm md:text-base"
                     onClick={handleProceedToPayment}
-                    disabled={bookingDisabled}
+                    disabled={bookingDisabled || blockedSelectedSlots.length > 0}
                   >
-                    {bookingDisabled ? 'Court is temporarily closed' : 'Proceed to Payment'}
+                    {bookingDisabled
+                      ? 'Court is temporarily closed'
+                      : blockedSelectedSlots.length > 0
+                      ? 'Resolve slot conflict'
+                      : 'Proceed to Payment'}
                   </Button>
                   <Button
                     variant="outline"
                     className="w-full mt-3 text-sm md:text-base"
                     onClick={handleBookOnsiteNow}
-                    disabled={bookingDisabled || onsiteProcessing}
+                    disabled={bookingDisabled || onsiteProcessing || blockedSelectedSlots.length > 0}
                   >
-                    {bookingDisabled ? 'Bookings Paused' : onsiteProcessing ? 'Booking Onsite...' : 'Book Onsite (Pay at Venue)'}
+                    {bookingDisabled
+                      ? 'Bookings Paused'
+                      : blockedSelectedSlots.length > 0
+                      ? 'Resolve slot conflict'
+                      : onsiteProcessing
+                      ? 'Booking Onsite...'
+                      : 'Book Onsite (Pay at Venue)'}
                   </Button>
                 </>
               )}
