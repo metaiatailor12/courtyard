@@ -107,8 +107,6 @@ export interface Subscription {
   endDate: string;
   weekdaysCount: number;
   amount: number;
-  status: 'active' | 'expired' | 'cancelled';
-  // 'paused' indicates the subscription is temporarily suspended by admin
   status: 'active' | 'expired' | 'cancelled' | 'paused';
   paymentId?: string;
   paymentMethod?: 'online' | 'onsite';
@@ -118,6 +116,10 @@ export interface Subscription {
   userPhone?: string;
   createdAt: string;
   confirmationEmailSent?: boolean;
+  // Pause tracking
+  pausedAt?: string;
+  pausedOriginalEndDate?: string;
+  totalPausedDays?: number;
 }
 
 export interface CourtBlock {

@@ -71,6 +71,16 @@ export const Navbar = () => {
                       <Image className="w-4 h-4" />
                       Photos
                     </Link>
+                  <Link
+                    to="/admin/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors $
+                      isActivePath('/admin/profile') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <User className="w-4 h-4" />
+                    Profile
+                  </Link>
                     <Link
                       to="/user/booking"
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -157,6 +167,15 @@ export const Navbar = () => {
                 >
                   <Mail className="w-4 h-4" />
                   Messages
+                </Link>
+                <Link
+                  to="/admin/profile"
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                    isActivePath('/admin/profile') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <User className="w-4 h-4" />
+                  Profile
                 </Link>
                 
                 {/* Quick Revenue Menu */}
@@ -354,6 +373,16 @@ export const Navbar = () => {
                   >
                     <Mail className="w-4 h-4" />
                     Messages
+                  </Link>
+                  <Link
+                    to="/admin/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                      isActivePath('/admin/profile') ? 'bg-emerald-50 text-[#10b981] font-medium' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    <User className="w-4 h-4" />
+                    Profile
                   </Link>
                 </>
               )}

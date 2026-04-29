@@ -1,25 +1,34 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { User, Calendar, CreditCard, Mail, Phone as PhoneIcon, CheckCircle, XCircle, Phone, Mail as MailIcon, LogOut, Edit2, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { Navbar } from '../../components/Navbar';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { useAuth } from '../../context/AuthContext';
 import { useBooking, getEffectiveBookingStatus } from '../../context/BookingContext';
-import { doc, setDoc } from 'firebase/firestore';
+import { deleteField, doc, setDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebaseClient';
 import { showSuccessToast, showErrorToast } from '../../utils/notificationHelpers';
+import { isValidPhoneNumber } from '../../../utils/emailValidation';
 
 export const ProfilePage = () => {
   const { user, logout } = useAuth();
   const { bookings, subscriptions, appSettings } = useBooking();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'bookings' | 'subscriptions'>('bookings');
   const [isEditing, setIsEditing] = useState(false);
   const [editedPhone, setEditedPhone] = useState(user?.phone || '');
   const [editedLocation, setEditedLocation] = useState(user?.location || user?.address || '');
   const [isSaving, setIsSaving] = useState(false);
+  const shouldOpenEditor = Boolean((location.state as { editProfile?: boolean } | null)?.editProfile);
+
+  useEffect(() => {
+    if (shouldOpenEditor) {
+      setIsEditing(true);
+    }
+  }, [shouldOpenEditor]);
   
   const supportPhone = typeof appSettings.landing?.venuePhone === 'string' ? appSettings.landing.venuePhone : '';
   const supportEmail = typeof appSettings.landing?.venueEmail === 'string' ? appSettings.landing.venueEmail : '';
@@ -43,25 +52,41 @@ export const ProfilePage = () => {
       return;
     }
 
+    const normalizedPhone = editedPhone.trim();
+    if (normalizedPhone && !isValidPhoneNumber(normalizedPhone)) {
+      showErrorToast('Invalid phone number', 'Please enter a valid mobile number before continuing.');
+      return;
+    }
+
     setIsSaving(true);
     try {
-      await setDoc(doc(db, 'users', user.id), {
+      const profileUpdate = {
         name: user.name,
         email: user.email,
-        phone: editedPhone || undefined,
-        location: editedLocation || undefined,
         role: user.role,
         updatedAt: new Date(),
+        ...(normalizedPhone ? { phone: normalizedPhone } : { phone: deleteField() }),
+        ...(editedLocation.trim() ? { location: editedLocation.trim() } : { location: deleteField() }),
+      };
+
+      await setDoc(doc(db, 'users', user.id), {
+        ...profileUpdate,
       }, { merge: true });
 
       // Update local user state with new phone and location
       Object.assign(user, {
-        phone: editedPhone || undefined,
+        phone: normalizedPhone || undefined,
         location: editedLocation || undefined,
       });
 
       showSuccessToast('Success', 'Profile updated successfully');
       setIsEditing(false);
+      const returnTo = typeof (location.state as { from?: string } | null)?.from === 'string'
+        ? (location.state as { from?: string }).from
+        : '';
+      if (returnTo) {
+        navigate(returnTo);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to update profile';
       showErrorToast('Error', message);
@@ -385,14 +410,26 @@ export const ProfilePage = () => {
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="font-semibold text-gray-800">Monthly Subscription</h4>
                                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                  sub.status === 'active'
-                                    ? 'bg-green-100 text-green-700'
-                                    : 'bg-gray-100 text-gray-700'
+                                    sub.status === 'active'
+                                      ? 'bg-green-100 text-green-700'
+                                      : sub.status === 'paused'
+                                        ? 'bg-yellow-100 text-yellow-700'
+                                        : sub.status === 'cancelled'
+                                          ? 'bg-red-100 text-red-700'
+                                          : 'bg-gray-100 text-gray-700'
                                 }`}>
                                   {sub.status === 'active' ? (
                                     <span className="flex items-center gap-1">
                                       <CheckCircle className="w-3 h-3" /> Active
                                     </span>
+                                    ) : sub.status === 'paused' ? (
+                                      <span className="flex items-center gap-1">
+                                        <Pause className="w-3 h-3" /> Paused
+                                      </span>
+                                    ) : sub.status === 'cancelled' ? (
+                                      <span className="flex items-center gap-1">
+                                        <XCircle className="w-3 h-3" /> Cancelled
+                                      </span>
                                   ) : (
                                     <span className="flex items-center gap-1">
                                       <XCircle className="w-3 h-3" /> Expired

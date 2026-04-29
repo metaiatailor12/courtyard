@@ -8,7 +8,7 @@ import { getAPI_BASE_URL } from '../../lib/apiConfig';
 import { getCurrentUserToken } from '../../lib/firebaseClient';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
-import { showErrorToast } from '../../utils/notificationHelpers';
+import { showErrorToast, showSuccessToast } from '../../utils/notificationHelpers';
 
 type AdminUser = {
   id: string;
@@ -29,56 +29,61 @@ export const AdminUsers = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [deletingSelectedUsers, setDeletingSelectedUsers] = useState(false);
 
-  useEffect(() => {
-    let active = true;
+  const loadUsers = async (active?: { current: boolean }) => {
+    if (!user) {
+      setUsers([]);
+      return;
+    }
 
-    const loadUsers = async () => {
-      if (!user) {
+    setLoading(true);
+
+    try {
+      const token = await getCurrentUserToken();
+      if (!token) {
         setUsers([]);
         return;
       }
 
-      setLoading(true);
+      const response = await fetch(`${getAPI_BASE_URL()}/admin/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      try {
-        const token = await getCurrentUserToken();
-        if (!token) {
-          setUsers([]);
-          return;
-        }
-
-        const response = await fetch(`${getAPI_BASE_URL()}/admin/users`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const payload = await response.json().catch(() => null);
-        if (!active || !response.ok) {
-          throw new Error(payload?.error?.message || 'Unable to load users');
-        }
-
-        setUsers(Array.isArray(payload?.users) ? payload.users : []);
-      } catch (error) {
-        if (active) {
-          setUsers([]);
-          const message = error instanceof Error ? error.message : 'Unable to load users';
-          showErrorToast('User management unavailable', message);
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(payload?.error?.message || 'Unable to load users');
       }
-    };
 
-    void loadUsers();
+      if (!active || active.current) {
+        setUsers(Array.isArray(payload?.users) ? payload.users : []);
+      }
+    } catch (error) {
+      if (!active || active.current) {
+        setUsers([]);
+        const message = error instanceof Error ? error.message : 'Unable to load users';
+        showErrorToast('User management unavailable', message);
+      }
+    } finally {
+      if (!active || active.current) {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const active = { current: true };
+
+    void loadUsers(active);
 
     return () => {
-      active = false;
+      active.current = false;
     };
   }, [user]);
+
+  // Bulk and single delete actions removed from admin UI
 
   const totalUsers = users.length;
   const activeUsers = users.filter((item) => item.status !== 'Inactive').length;
@@ -135,6 +140,11 @@ export const AdminUsers = () => {
             <div />
           </div>
 
+          <div className="mb-4 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm text-gray-600">Delete actions have been disabled in the admin UI.</div>
+            <div />
+          </div>
+
           <div className="space-y-3">
             {loading ? (
               <div className="p-4 bg-gray-50 rounded-xl text-sm text-gray-600">Loading users...</div>
@@ -144,6 +154,7 @@ export const AdminUsers = () => {
               users.map((adminUser) => (
                 <div key={adminUser.id} className="flex items-center justify-between gap-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                   <div className="flex items-center gap-4 min-w-0 flex-1">
+                    <div className="w-4" />
                     <div className="w-12 h-12 bg-gradient-to-br from-green-900 to-green-800 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0">
                       {adminUser.name
                         .split(' ')
@@ -179,9 +190,12 @@ export const AdminUsers = () => {
                     {adminUser.status}
                   </span>
 
-                  <Button variant="secondary" onClick={() => setSelectedUser(adminUser)}>
-                    View Details
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="secondary" onClick={() => setSelectedUser(adminUser)}>
+                      View Details
+                    </Button>
+                    <div />
+                  </div>
                 </div>
               ))
             )}
@@ -268,6 +282,9 @@ export const AdminUsers = () => {
                 >
                   Edit User
                 </Button>
+                <div className="flex-1">
+                  <div className="text-sm text-gray-600">Single-user delete disabled</div>
+                </div>
               </div>
             </div>
           </div>

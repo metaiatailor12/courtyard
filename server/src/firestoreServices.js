@@ -1437,22 +1437,40 @@ async function updateSubscription(user, subscriptionId, updates = {}) {
       allowedUpdates.pausedAt = now;
       allowedUpdates.pausedOriginalEndDate = subscription.endDate || null;
     } else if (status === 'active') {
-      // resuming: if we have a pausedAt, shift the endDate by the number of days paused
+      // resuming: if we have a pausedAt, shift the endDate by the number of weekdays paused
       const pausedAtStr = subscription.pausedAt || updates.pausedAt || null;
       const originalEnd = subscription.pausedOriginalEndDate || subscription.endDate || null;
       if (pausedAtStr && originalEnd) {
         const pausedAtDate = new Date(pausedAtStr);
         const resumedAtDate = now;
-        // calculate days paused (round up partial days)
-        const ms = resumedAtDate.getTime() - pausedAtDate.getTime();
-        const daysPaused = Math.ceil(ms / (24 * 60 * 60 * 1000));
+        
+        // Calculate only weekdays (Monday-Friday) paused
+        let weekdaysPaused = 0;
+        let currentDate = new Date(pausedAtDate);
+        currentDate.setHours(0, 0, 0, 0);
+        
+        while (currentDate < resumedAtDate) {
+          const dayOfWeek = currentDate.getDay();
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday or Saturday
+            weekdaysPaused++;
+          }
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
 
-        // add daysPaused to originalEnd (assume originalEnd is YYYY-MM-DD)
+        // add weekdaysPaused to originalEnd (assume originalEnd is YYYY-MM-DD)
         const orig = new Date(originalEnd + 'T00:00:00.000Z');
-        orig.setUTCDate(orig.getUTCDate() + daysPaused);
+        let daysAdded = 0;
+        while (daysAdded < weekdaysPaused) {
+          orig.setUTCDate(orig.getUTCDate() + 1);
+          const dayOfWeek = orig.getUTCDay();
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Only count weekdays
+            daysAdded++;
+          }
+        }
         const newEndDate = orig.toISOString().slice(0, 10);
 
         allowedUpdates.endDate = newEndDate;
+        allowedUpdates.totalPausedDays = (subscription.totalPausedDays || 0) + weekdaysPaused;
       }
 
       allowedUpdates.pausedAt = null;
@@ -1466,6 +1484,16 @@ async function updateSubscription(user, subscriptionId, updates = {}) {
   // Allow updating endDate if provided
   if (typeof updates.endDate === 'string' && updates.endDate.trim()) {
     allowedUpdates.endDate = updates.endDate;
+  }
+
+  // Allow updating payment status
+  if (typeof updates.paymentStatus === 'string' && ['paid', 'pending'].includes(updates.paymentStatus)) {
+    allowedUpdates.paymentStatus = updates.paymentStatus;
+  }
+
+  // Allow updating totalPausedDays
+  if (typeof updates.totalPausedDays === 'number') {
+    allowedUpdates.totalPausedDays = updates.totalPausedDays;
   }
 
   allowedUpdates.updatedAt = now;
@@ -1586,6 +1614,267 @@ async function listUsers() {
       };
     })
     .sort((a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime());
+}
+
+async function deleteAllOtherUsersAndBookings(authUser, protectedUserId, protectedUserEmail) {
+  if (!authUser?.sub || authUser.role !== 'admin') {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  const db = getDb();
+  const auth = require('./firebase').getAuth();
+  const normalizedProtectedUserId = String(protectedUserId || '').trim() || authUser.sub;
+  const protectedUserIds = new Set([authUser.sub, normalizedProtectedUserId]);
+  const protectedEmail = String(protectedUserEmail || authUser.email || '').trim().toLowerCase();
+
+  const usersSnapshot = await db.collection('users').get();
+  const usersToDelete = usersSnapshot.docs.filter((doc) => !protectedUserIds.has(doc.id));
+  const protectedEmails = new Set(
+    usersSnapshot.docs
+      .filter((doc) => protectedUserIds.has(doc.id))
+      .map((doc) => String(doc.data()?.email || '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  if (protectedEmail) {
+    protectedEmails.add(protectedEmail);
+  }
+
+  const bookingSnapshot = await db.collection('bookings').get();
+  const bookingsToDelete = bookingSnapshot.docs.filter((doc) => {
+    const data = doc.data() || {};
+    const bookingUserId = String(data.userId || '').trim();
+    const bookingEmail = String(data.userEmail || '').trim().toLowerCase();
+    return !protectedUserIds.has(bookingUserId) && !protectedEmails.has(bookingEmail);
+  });
+
+  const deleteDocRefsInBatches = async (refs, batchSize = 400) => {
+    let deleted = 0;
+
+    for (let index = 0; index < refs.length; index += batchSize) {
+      const batch = db.batch();
+      const slice = refs.slice(index, index + batchSize);
+
+      for (const ref of slice) {
+        batch.delete(ref);
+      }
+
+      if (slice.length) {
+        await batch.commit();
+        deleted += slice.length;
+      }
+    }
+
+    return deleted;
+  };
+
+  const userAuthIdsToDelete = usersToDelete.map((doc) => doc.id);
+  const authDeleteResults = [];
+  for (let index = 0; index < userAuthIdsToDelete.length; index += 100) {
+    const idChunk = userAuthIdsToDelete.slice(index, index + 100);
+    if (!idChunk.length) {
+      continue;
+    }
+
+    const result = await auth.deleteUsers(idChunk);
+    authDeleteResults.push(result);
+  }
+
+  const bookingRefs = bookingsToDelete.map((doc) => doc.ref);
+  const bookingIds = bookingsToDelete.map((doc) => doc.id);
+  const bookingSlotSnapshots = await Promise.all(
+    bookingIds.map((bookingId) => db.collection('booking_slots').where('bookingId', '==', bookingId).get())
+  );
+  const bookingSlotRefs = bookingSlotSnapshots.flatMap((snapshot) => snapshot.docs.map((doc) => doc.ref));
+
+  const subcollectionSlotRefs = [];
+  for (const bookingDoc of bookingsToDelete) {
+    const slotSnapshot = await bookingDoc.ref.collection('slots').get();
+    subcollectionSlotRefs.push(...slotSnapshot.docs.map((doc) => doc.ref));
+  }
+
+  const deletedBookingSlots = await deleteDocRefsInBatches([...bookingSlotRefs, ...subcollectionSlotRefs]);
+  const deletedBookings = await deleteDocRefsInBatches(bookingRefs);
+  const deletedUsers = await deleteDocRefsInBatches(usersToDelete.map((doc) => doc.ref));
+
+  return {
+    protectedUserId: normalizedProtectedUserId,
+    usersDeleted: deletedUsers,
+    authUsersDeleted: authDeleteResults.reduce((count, result) => count + (result.successCount || 0), 0),
+    bookingsDeleted: deletedBookings,
+    bookingSlotsDeleted: deletedBookingSlots,
+  };
+}
+
+async function deleteBookingsPermanently(authUser, bookingIds = []) {
+  if (!authUser?.sub || authUser.role !== 'admin') {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  const db = getDb();
+  const normalizedBookingIds = Array.from(new Set(
+    (Array.isArray(bookingIds) ? bookingIds : [])
+      .map((bookingId) => String(bookingId || '').trim())
+      .filter(Boolean)
+  ));
+
+  if (!normalizedBookingIds.length) {
+    return { bookingsDeleted: 0, bookingSlotsDeleted: 0 };
+  }
+
+  const bookingSnapshots = await Promise.all(
+    normalizedBookingIds.map((bookingId) => db.collection('bookings').doc(bookingId).get())
+  );
+
+  const bookingDocs = bookingSnapshots.filter((snapshot) => snapshot.exists);
+  const bookingRefs = bookingDocs.map((doc) => doc.ref);
+  const bookingSlotSnapshots = await Promise.all(
+    bookingDocs.map((doc) => db.collection('booking_slots').where('bookingId', '==', doc.id).get())
+  );
+  const bookingSlotRefs = bookingSlotSnapshots.flatMap((snapshot) => snapshot.docs.map((doc) => doc.ref));
+  const subcollectionSlotRefs = [];
+
+  for (const bookingDoc of bookingDocs) {
+    const slotSnapshot = await bookingDoc.ref.collection('slots').get();
+    subcollectionSlotRefs.push(...slotSnapshot.docs.map((doc) => doc.ref));
+  }
+
+  const deleteDocRefsInBatches = async (refs, batchSize = 400) => {
+    let deleted = 0;
+
+    for (let index = 0; index < refs.length; index += batchSize) {
+      const slice = refs.slice(index, index + batchSize);
+      if (!slice.length) {
+        continue;
+      }
+
+      const batch = db.batch();
+      for (const ref of slice) {
+        batch.delete(ref);
+      }
+
+      await batch.commit();
+      deleted += slice.length;
+    }
+
+    return deleted;
+  };
+
+  const bookingSlotsDeleted = await deleteDocRefsInBatches([...bookingSlotRefs, ...subcollectionSlotRefs]);
+  const bookingsDeleted = await deleteDocRefsInBatches(bookingRefs);
+
+  return { bookingsDeleted, bookingSlotsDeleted };
+}
+
+async function deleteUsersAndRelatedData(authUser, userIds = []) {
+  if (!authUser?.sub || authUser.role !== 'admin') {
+    throw new ApiError(403, 'Forbidden');
+  }
+
+  const db = getDb();
+  const auth = require('./firebase').getAuth();
+  const normalizedUserIds = Array.from(new Set(
+    (Array.isArray(userIds) ? userIds : [])
+      .map((userId) => String(userId || '').trim())
+      .filter(Boolean)
+      .filter((userId) => userId !== authUser.sub)
+  ));
+
+  if (!normalizedUserIds.length) {
+    return {
+      usersDeleted: 0,
+      authUsersDeleted: 0,
+      bookingsDeleted: 0,
+      bookingSlotsDeleted: 0,
+      subscriptionsDeleted: 0,
+    };
+  }
+
+  const userSnapshots = await Promise.all(
+    normalizedUserIds.map((userId) => db.collection('users').doc(userId).get())
+  );
+  const userDocs = userSnapshots.filter((snapshot) => snapshot.exists);
+  const deletableUserDocs = userDocs.filter((doc) => (doc.data()?.role || 'user') !== 'admin');
+  const protectedEmails = new Set(
+    deletableUserDocs
+      .map((doc) => String(doc.data()?.email || '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  const targetUserIds = new Set(deletableUserDocs.map((doc) => doc.id));
+  const bookingsSnapshot = await db.collection('bookings').get();
+  const subscriptionsSnapshot = await db.collection('subscriptions').get();
+
+  const bookingsToDelete = bookingsSnapshot.docs.filter((doc) => {
+    const data = doc.data() || {};
+    const userId = String(data.userId || '').trim();
+    const email = String(data.userEmail || '').trim().toLowerCase();
+    return targetUserIds.has(userId) || protectedEmails.has(email);
+  });
+
+  const subscriptionsToDelete = subscriptionsSnapshot.docs.filter((doc) => {
+    const data = doc.data() || {};
+    const userId = String(data.userId || '').trim();
+    const email = String(data.userEmail || '').trim().toLowerCase();
+    return targetUserIds.has(userId) || protectedEmails.has(email);
+  });
+
+  const deleteDocRefsInBatches = async (refs, batchSize = 400) => {
+    let deleted = 0;
+
+    for (let index = 0; index < refs.length; index += batchSize) {
+      const slice = refs.slice(index, index + batchSize);
+      if (!slice.length) {
+        continue;
+      }
+
+      const batch = db.batch();
+      for (const ref of slice) {
+        batch.delete(ref);
+      }
+
+      await batch.commit();
+      deleted += slice.length;
+    }
+
+    return deleted;
+  };
+
+  const authUserIdsToDelete = deletableUserDocs.map((doc) => doc.id);
+  const authDeleteResults = [];
+  for (let index = 0; index < authUserIdsToDelete.length; index += 100) {
+    const idChunk = authUserIdsToDelete.slice(index, index + 100);
+    if (!idChunk.length) {
+      continue;
+    }
+
+    const result = await auth.deleteUsers(idChunk);
+    authDeleteResults.push(result);
+  }
+
+  const bookingIds = bookingsToDelete.map((doc) => doc.id);
+  const bookingSlotSnapshots = await Promise.all(
+    bookingIds.map((bookingId) => db.collection('booking_slots').where('bookingId', '==', bookingId).get())
+  );
+  const bookingSlotRefs = bookingSlotSnapshots.flatMap((snapshot) => snapshot.docs.map((doc) => doc.ref));
+  const bookingSubSlotRefs = [];
+  for (const bookingDoc of bookingsToDelete) {
+    const slotSnapshot = await bookingDoc.ref.collection('slots').get();
+    bookingSubSlotRefs.push(...slotSnapshot.docs.map((doc) => doc.ref));
+  }
+
+  const bookingSlotsDeleted = await deleteDocRefsInBatches([...bookingSlotRefs, ...bookingSubSlotRefs]);
+  const bookingsDeleted = await deleteDocRefsInBatches(bookingsToDelete.map((doc) => doc.ref));
+  const subscriptionsDeleted = await deleteDocRefsInBatches(subscriptionsToDelete.map((doc) => doc.ref));
+  const usersDeleted = await deleteDocRefsInBatches(deletableUserDocs.map((doc) => doc.ref));
+
+  return {
+    usersDeleted,
+    authUsersDeleted: authDeleteResults.reduce((count, result) => count + (result.successCount || 0), 0),
+    bookingsDeleted,
+    bookingSlotsDeleted,
+    subscriptionsDeleted,
+  };
 }
 
 async function createContactMessage(payload) {
@@ -1981,6 +2270,9 @@ module.exports = {
   getDashboardStats,
   getRevenueSeries,
   listUsers,
+  // deleteAllOtherUsersAndBookings,
+  // deleteUsersAndRelatedData,
+  // deleteBookingsPermanently,
   createContactMessage,
   listContactMessages,
   listContactMessagesByEmail,

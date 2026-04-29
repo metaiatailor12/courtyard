@@ -21,6 +21,7 @@ import { AdminUsers } from "./pages/admin/AdminUsers";
 import { AdminBookings } from "./pages/admin/AdminBookings";
 import { AdminRevenuePage } from "./pages/admin/AdminRevenuePage";
 import { AdminSettings } from "./pages/admin/AdminSettings";
+import { AdminProfile } from "./pages/admin/AdminProfile";
 import { AdminGalleryPage } from "./pages/admin/AdminGalleryPage";
 import { AdminPhotosPage } from "./pages/admin/AdminPhotosPage";
 import { AdminReviews } from "./pages/admin/AdminReviews";
@@ -144,6 +145,10 @@ export const router = createBrowserRouter([
       {
         path: "admin/settings",
         element: <ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>,
+      },
+      {
+        path: "admin/profile",
+        element: <ProtectedRoute requiredRole="admin"><AdminProfile /></ProtectedRoute>,
       },
       {
         path: "admin/reviews",

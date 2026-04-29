@@ -161,25 +161,23 @@ export const LandingPage = () => {
                 {/* Main Image Card */}
                 <GlassCard className="p-4 hover:shadow-2xl transition-shadow duration-500">
                   <div className="rounded-2xl overflow-hidden relative h-64 md:h-96">
-                    {heroSlides.map((slide, index) => (
+                    {heroSlides[currentSlide] && (
                       <motion.div
-                        key={slide.id}
+                        key={heroSlides[currentSlide].id}
                         initial={{ opacity: 0, scale: 1.02 }}
-                        animate={{
-                          opacity: index === currentSlide ? 1 : 0,
-                          scale: index === currentSlide ? 1 : 1.02,
-                        }}
+                        animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 0.7, ease: 'easeInOut' }}
                         className="absolute inset-0"
-                        style={{ zIndex: index === currentSlide ? 2 : 1 }}
                       >
                         <ImageWithFallback
-                          src={slide.src}
-                          alt={slide.caption || 'Sports Court'}
+                          src={heroSlides[currentSlide].src}
+                          alt={heroSlides[currentSlide].caption || 'Sports Court'}
                           className="w-full h-full object-cover"
+                          loading={currentSlide === 0 ? 'eager' : 'lazy'}
+                          fetchPriority={currentSlide === 0 ? 'high' : 'low'}
                         />
                       </motion.div>
-                    ))}
+                    )}
 
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none" />
 
@@ -264,6 +262,7 @@ export const LandingPage = () => {
                     src={content.aboutImage}
                     alt="About thecourtyard"
                     className="w-full h-64 md:h-96 object-cover"
+                    loading="lazy"
                   />
                 </div>
               </GlassCard>
@@ -372,6 +371,7 @@ export const LandingPage = () => {
                         src={image.url}
                         alt={image.caption}
                         className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+                        loading="lazy"
                       />
                       {image.caption && (
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">

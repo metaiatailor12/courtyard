@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { useNavigate } from 'react-router';
+import { Navigate } from 'react-router';
 import { useAuth } from '../context/AuthContext';
 import { VerificationRequiredPage } from '../pages/VerificationRequiredPage';
 import { LoadingSpinner } from './LoadingSpinner';
@@ -24,7 +24,6 @@ export const ProtectedRoute = ({
   requiredRole = 'user',
   requireEmailVerification: forceEmailVerification,
 }: ProtectedRouteProps) => {
-  const navigate = useNavigate();
   const { user, loading } = useAuth();
 
   // Email verification is required for user accounts unless a route explicitly disables it.
@@ -39,19 +38,16 @@ export const ProtectedRoute = ({
 
   // Not authenticated - redirect to login
   if (!user) {
-    navigate('/login', { replace: true });
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   // Check role-based access
   if (requiredRole === 'admin' && user.role !== 'admin') {
-    navigate('/login', { replace: true });
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   if (requiredRole === 'user' && user.role === 'admin') {
-    navigate('/admin/dashboard', { replace: true });
-    return null;
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   // Check email verification for users (not admins)

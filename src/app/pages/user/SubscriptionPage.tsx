@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { Calendar as CalendarIcon, Clock, MapPin, CreditCard, CheckCircle, AlertCircle, CalendarDays, Building2 } from 'lucide-react';
 import { format, addDays, isWeekend, eachDayOfInterval, parse } from 'date-fns';
 import { Navbar } from '../../components/Navbar';
@@ -9,9 +9,11 @@ import { DatePickerField } from '../../components/DatePickerField';
 import { useAuth } from '../../context/AuthContext';
 import { useBooking } from '../../context/BookingContext';
 import { showSuccessToast, showErrorToast } from '../../utils/notificationHelpers';
+import { isValidPhoneNumber } from '../../../utils/emailValidation';
 
 export const SubscriptionPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { appSettings, courtBlocks, bookings, subscriptions, createSubscription } = useBooking();
   const bookingDisabled = Boolean(appSettings.bookingDisabled);
@@ -25,6 +27,7 @@ export const SubscriptionPage = () => {
 
   const subscriptionPrice = appSettings.pricing.subscription || 2500;
   const courts = appSettings.courts.length ? appSettings.courts : ['Court 1', 'Court 2', 'Court 3'];
+  const hasMobileNumber = Boolean(user?.phone && isValidPhoneNumber(user.phone));
   const timeSlots = useMemo(() => {
     const slots: string[] = [];
     for (let hour = appSettings.operatingHours.startHour; hour <= appSettings.operatingHours.endHour; hour += 1) {
@@ -38,6 +41,12 @@ export const SubscriptionPage = () => {
     }
     return slots;
   }, [appSettings.operatingHours.endHour, appSettings.operatingHours.startHour]);
+
+  useEffect(() => {
+    if (user && !hasMobileNumber) {
+      navigate('/user/profile', { state: { from: location.pathname } });
+    }
+  }, [hasMobileNumber, location.pathname, navigate, user]);
 
   const calculateEndDate = (start: string) => {
     if (!start) return '';
@@ -189,6 +198,11 @@ export const SubscriptionPage = () => {
 
     if (!user) {
       navigate('/user/login');
+      return;
+    }
+
+    if (!hasMobileNumber) {
+      navigate('/user/profile', { state: { from: location.pathname } });
       return;
     }
 

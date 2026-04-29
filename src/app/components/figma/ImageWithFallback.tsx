@@ -10,8 +10,11 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
     setDidError(true)
   }
 
-  const { src, alt, style, className, ...rest } = props
+  const { src, alt, style, className, loading, decoding, fetchPriority, ...rest } = props
   const resolvedSrc = typeof src === 'string' ? src.trim() : ''
+  const resolvedLoading = loading ?? 'lazy'
+  const resolvedDecoding = decoding ?? 'async'
+  const resolvedFetchPriority = fetchPriority ?? (resolvedLoading === 'eager' ? 'high' : 'low')
 
   useEffect(() => {
     setDidError(false)
@@ -24,7 +27,7 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
         style={style}
       >
         <div className="flex items-center justify-center w-full h-full">
-          <img src={ERROR_IMG_SRC} alt="Image unavailable" {...rest} />
+            <img src={ERROR_IMG_SRC} alt="Image unavailable" loading="lazy" decoding="async" {...rest} />
         </div>
       </div>
     )
@@ -36,10 +39,20 @@ export function ImageWithFallback(props: React.ImgHTMLAttributes<HTMLImageElemen
       style={style}
     >
       <div className="flex items-center justify-center w-full h-full">
-        <img src={ERROR_IMG_SRC} alt="Error loading image" {...rest} data-original-url={resolvedSrc} />
+        <img src={ERROR_IMG_SRC} alt="Error loading image" loading="lazy" decoding="async" {...rest} data-original-url={resolvedSrc} />
       </div>
     </div>
   ) : (
-    <img src={resolvedSrc} alt={alt} className={className} style={style} {...rest} onError={handleError} />
+    <img
+      src={resolvedSrc}
+      alt={alt}
+      className={className}
+      style={style}
+      loading={resolvedLoading}
+      decoding={resolvedDecoding}
+      fetchPriority={resolvedFetchPriority}
+      {...rest}
+      onError={handleError}
+    />
   )
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
-import { Calendar as CalendarIcon, Clock, Trash2, LogIn, UserPlus, ChevronDown, AlertTriangle } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router';
+import { Calendar as CalendarIcon, Clock, Trash2, LogIn, UserPlus, ChevronDown, AlertTriangle, Phone, Edit2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Calendar } from '../../components/ui/calendar';
 import { Navbar } from '../../components/Navbar';
@@ -12,6 +12,7 @@ import { useNotifications } from '../../context/NotificationContext';
 import { getAPI_BASE_URL } from '../../lib/apiConfig';
 import { motion, AnimatePresence } from 'motion/react';
 import { datePickerCalendarClassNames } from '../../components/datePickerStyles';
+import { isValidPhoneNumber } from '../../../utils/emailValidation';
 
 const formatHourLabel = (hour: number) => {
   const period = hour >= 12 ? 'PM' : 'AM';
@@ -92,6 +93,7 @@ const generateTimeSlots = (
 
 export const BookingPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { appSettings, selectedSlots, addSlot, removeSlot, isSlotBooked, createBooking, bookings, subscriptions, courtBlocks } = useBooking();
   const bookingDisabled = Boolean(appSettings.bookingDisabled);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -103,9 +105,11 @@ export const BookingPage = () => {
   const [calendarDraftDate, setCalendarDraftDate] = useState<Date>(new Date());
   const [serverAvailability, setServerAvailability] = useState<TimeSlot[]>([]);
   const [onsiteProcessing, setOnsiteProcessing] = useState(false);
+  const [showPhonePrompt, setShowPhonePrompt] = useState(false);
   const venueName = typeof appSettings.landing?.venueName === 'string' && appSettings.landing.venueName.trim()
     ? appSettings.landing.venueName.trim()
     : appSettings.courts[0] || '';
+  const hasMobileNumber = Boolean(user?.phone && isValidPhoneNumber(user.phone));
 
   const timeSlots = generateTimeSlots(selectedDate, selectedCourt, appSettings.pricing, appSettings.operatingHours);
   const courts = appSettings.courts.length ? appSettings.courts : ['Court 1', 'Court 2', 'Court 3'];
@@ -275,12 +279,18 @@ export const BookingPage = () => {
 
   const firstBlockedSlotMessage = blockedSelectedSlots[0]?.message || '';
 
+  const redirectToProfileEdit = () => {
+    setShowPhonePrompt(true);
+  };
+
   const handleProceedToPayment = () => {
     if (bookingDisabled) return;
     if (blockedSelectedSlots.length > 0) return;
     if (selectedSlots.length > 0) {
       if (!user) {
         setShowLoginPrompt(true);
+      } else if (!hasMobileNumber) {
+        redirectToProfileEdit();
       } else {
         navigate('/user/payment');
       }
@@ -303,6 +313,11 @@ export const BookingPage = () => {
 
     if (!user) {
       setShowLoginPrompt(true);
+      return;
+    }
+
+    if (!hasMobileNumber) {
+      redirectToProfileEdit();
       return;
     }
 
@@ -752,6 +767,58 @@ export const BookingPage = () => {
                     className="w-full px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200 transition-all"
                   >
                     Continue Browsing
+                  </button>
+                </div>
+              </GlassCard>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Number Prompt Modal */}
+      <AnimatePresence>
+        {showPhonePrompt && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/45 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowPhonePrompt(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.96, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-[520px]"
+            >
+              <GlassCard className="overflow-hidden bg-white p-0 shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-slate-200/80">
+                <div className="h-1 w-full bg-gradient-to-r from-[#014B33] via-[#0f6a4e] to-[#b56a00]" />
+                <div className="px-8 pt-10 pb-8 text-center">
+                  <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-[#f2f7f4] ring-1 ring-[#dbe8e1]">
+                    <Phone className="w-6 h-6 text-[#014B33]" />
+                  </div>
+                  <h2 className="mb-3 text-3xl font-semibold tracking-tight text-slate-900">Update Mobile Number</h2>
+                  <p className="mx-auto max-w-sm text-base leading-7 text-slate-600">Please update your mobile number in your profile before continuing.</p>
+                </div>
+
+                <div className="px-8 pb-8">
+                  <button
+                    onClick={() => {
+                      setShowPhonePrompt(false);
+                      navigate('/user/profile', { state: { from: location.pathname, editProfile: true } });
+                    }}
+                    className="w-full rounded-2xl bg-[#014B33] px-6 py-4 text-base font-semibold text-white shadow-[0_10px_24px_rgba(1,75,51,0.24)] transition-all hover:bg-[#013a28] flex items-center justify-center gap-2"
+                  >
+                    <Edit2 className="w-5 h-5" />
+                    Update Mobile Number
+                  </button>
+
+                  <button
+                    onClick={() => setShowPhonePrompt(false)}
+                    className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-6 py-4 text-base font-semibold text-slate-600 transition-all hover:bg-slate-50 hover:text-slate-700"
+                  >
+                    Cancel
                   </button>
                 </div>
               </GlassCard>

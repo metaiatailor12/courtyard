@@ -7,6 +7,8 @@ import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { useBooking, getEffectiveBookingStatus } from '../../context/BookingContext';
+import { getAPI_BASE_URL } from '../../lib/apiConfig';
+import { getCurrentUserToken } from '../../lib/firebaseClient';
 import { showSuccessToast, showErrorToast } from '../../utils/notificationHelpers';
 import { CreateBookingModal } from './CreateBookingModal';
 import { CreateSubscriptionModal } from './CreateSubscriptionModal';
@@ -18,7 +20,8 @@ export const AdminBookings = () => {
   const [activeTab, setActiveTab] = useState<'bookings' | 'subscriptions'>('bookings');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'upcoming' | 'completed' | 'cancelled'>('all');
-  const [subStatusFilter, setSubStatusFilter] = useState<'all' | 'active' | 'expired'>('all');
+  const [subStatusFilter, setSubStatusFilter] = useState<'all' | 'active' | 'paused' | 'expired' | 'cancelled'>('all');
+  const [markingSelectedPaid, setMarkingSelectedPaid] = useState(false);
   const [viewDetailsModal, setViewDetailsModal] = useState<any>(null);
   const [editModal, setEditModal] = useState<any>(null);
   const [createBookingModal, setCreateBookingModal] = useState(false);
@@ -78,6 +81,8 @@ export const AdminBookings = () => {
     }
   };
 
+  // Bulk and single booking delete removed from admin UI
+
   const handleDeleteBookingFromDetails = (bookingId: string) => {
     setViewDetailsModal(null);
     setConfirmDialog({ type: 'booking', id: bookingId });
@@ -95,11 +100,62 @@ export const AdminBookings = () => {
 
   const handleResumeSubscription = async (subscriptionId: string) => {
     try {
-      await updateSubscription(subscriptionId, { status: 'active' }, { asAdmin: true });
-      showSuccessToast('Subscription resumed', 'Subscription has been resumed successfully.');
+      const subscription = subscriptions.find(s => s.id === subscriptionId);
+      if (!subscription) throw new Error('Subscription not found');
+      
+      // Calculate additional days to extend based on pause duration
+      if (subscription.pausedAt && subscription.pausedOriginalEndDate) {
+        const pausedDate = new Date(subscription.pausedAt);
+        const todayDate = new Date();
+        const daysPaused = Math.floor((todayDate.getTime() - pausedDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Count weekdays in the pause period
+        let weekdaysPaused = 0;
+        for (let i = 0; i < daysPaused; i++) {
+          const date = new Date(pausedDate);
+          date.setDate(date.getDate() + i);
+          const day = date.getDay();
+          if (day !== 0 && day !== 6) weekdaysPaused++; // Not Sunday or Saturday
+        }
+        
+        // Extend end date by weekdays paused
+        const originalEndDate = new Date(subscription.pausedOriginalEndDate);
+        const newEndDate = new Date(originalEndDate);
+        let daysAdded = 0;
+        while (daysAdded < weekdaysPaused) {
+          newEndDate.setDate(newEndDate.getDate() + 1);
+          const day = newEndDate.getDay();
+          if (day !== 0 && day !== 6) daysAdded++; // Only count weekdays
+        }
+        
+        const totalPausedDays = (subscription.totalPausedDays || 0) + weekdaysPaused;
+        const newEndDateStr = newEndDate.toISOString().split('T')[0];
+        
+        await updateSubscription(subscriptionId, { 
+          status: 'active',
+          endDate: newEndDateStr,
+          totalPausedDays,
+          pausedAt: null,
+          pausedOriginalEndDate: null
+        }, { asAdmin: true });
+      } else {
+        await updateSubscription(subscriptionId, { status: 'active' }, { asAdmin: true });
+      }
+      
+      showSuccessToast('Subscription resumed', 'Subscription has been resumed and dates extended.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to resume subscription';
       showErrorToast('Error', message);
+    }
+  };
+
+  const handleMarkSubscriptionPaid = async (subscriptionId: string) => {
+    try {
+      await updateSubscription(subscriptionId, { paymentStatus: 'paid' }, { asAdmin: true });
+      showSuccessToast('Payment Updated', 'Subscription marked as paid successfully!');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to update payment status';
+      showErrorToast('Update Failed', message);
     }
   };
 
@@ -289,7 +345,7 @@ export const AdminBookings = () => {
                 </button>
               ))
             ) : (
-              ['all', 'active', 'paused', 'expired'].map((status) => (
+              ['all', 'active', 'paused', 'expired', 'cancelled'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setSubStatusFilter(status as any)}
@@ -304,6 +360,13 @@ export const AdminBookings = () => {
               ))
             )}
           </div>
+
+          {activeTab === 'bookings' && (
+            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 md:flex-row md:items-center md:justify-between">
+              <div className="text-sm text-gray-600">Delete actions have been disabled in the admin UI.</div>
+              <div />
+            </div>
+          )}
         </GlassCard>
 
         {/* Bookings Table */}
@@ -313,6 +376,14 @@ export const AdminBookings = () => {
               <table className="w-full">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
+                    <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 w-12">
+                      <input
+                        type="checkbox"
+                        checked={filteredBookings.length > 0 && filteredBookings.every((booking) => selectedBookingIds.includes(booking.id))}
+                        onChange={toggleAllBookings}
+                        className="h-4 w-4 rounded border-gray-300 text-[#808000] focus:ring-[#808000]"
+                      />
+                    </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Booking ID</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">User</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Court</th>
@@ -346,6 +417,9 @@ export const AdminBookings = () => {
 
                     return (
                       <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-4 align-top">
+                              <div className="w-4" />
+                            </td>
                         <td className="px-6 py-4">
                           <p className="font-medium text-gray-800">{booking.id}</p>
                           <p className="text-xs text-gray-500">{booking.paymentId}</p>
@@ -383,6 +457,15 @@ export const AdminBookings = () => {
                             >
                               <Eye className="w-4 h-4 text-blue-600" />
                             </button>
+                            {booking.paymentStatus === 'pending' && (
+                              <button
+                                onClick={() => handleMarkPaid(booking.id)}
+                                className="p-2 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Mark as Paid"
+                              >
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                              </button>
+                            )}
                             {getEffectiveBookingStatus(booking) === 'upcoming' && (
                               <>
                                 <button
@@ -747,26 +830,82 @@ export const AdminBookings = () => {
                         </div>
                       </div>
                     </div>
+                    {viewDetailsModal.data.status === 'paused' && (
+                      <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                        <p className="text-sm text-orange-800">
+                          <strong>Paused Since:</strong> {viewDetailsModal.data.pausedAt ? format(new Date(viewDetailsModal.data.pausedAt), 'MMMM d, yyyy') : 'N/A'}
+                        </p>
+                      </div>
+                    )}
                   </>
                 )}
               </div>
               
-              <div className="p-6 border-t border-gray-200 flex items-center justify-between gap-3">
-                {viewDetailsModal.type === 'booking' && getEffectiveBookingStatus(viewDetailsModal.data) === 'upcoming' ? (
-                  <Button
-                    variant="danger"
-                    onClick={() => handleDeleteBookingFromDetails(viewDetailsModal.data.id)}
-                  >
-                    Delete Booking
-                  </Button>
-                ) : (
-                  <div />
-                )}
-
-                <Button onClick={() => setViewDetailsModal(null)}>
-                  Close
-                </Button>
+              <div className="p-6 border-t border-gray-200">
+                <div className="flex flex-wrap gap-2">
+                  {viewDetailsModal.type === 'subscription' && (
+                    <>
+                      {viewDetailsModal.data.paymentMethod === 'onsite' && viewDetailsModal.data.paymentStatus === 'pending' && viewDetailsModal.data.status !== 'cancelled' && (
+                        <button
+                          onClick={() => {
+                            handleMarkSubscriptionPaid(viewDetailsModal.data.id);
+                            setViewDetailsModal(null);
+                          }}
+                          className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-sm"
+                        >
+                          Mark as Paid
+                        </button>
+                      )}
+                      
+                      {viewDetailsModal.data.status === 'active' && (
+                        <button
+                          onClick={() => {
+                            handlePauseSubscription(viewDetailsModal.data.id);
+                            setViewDetailsModal(null);
+                          }}
+                          className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                        >
+                          <Pause className="w-4 h-4" />
+                          Pause
+                        </button>
+                      )}
+                      
+                      {viewDetailsModal.data.status === 'paused' && (
+                        <button
+                          onClick={() => {
+                            handleResumeSubscription(viewDetailsModal.data.id);
+                            setViewDetailsModal(null);
+                          }}
+                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                        >
+                          <Play className="w-4 h-4" />
+                          Resume
+                        </button>
+                      )}
+                      
+                      {viewDetailsModal.data.status !== 'cancelled' && (
+                        <button
+                          onClick={() => {
+                            setViewDetailsModal(null);
+                            setConfirmDialog({ type: 'subscription', id: viewDetailsModal.data.id });
+                          }}
+                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
+              
+              <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
+                  <div />
+
+                  <Button onClick={() => setViewDetailsModal(null)}>
+                    Close
+                  </Button>
+                </div>
             </div>
           </div>
         )}

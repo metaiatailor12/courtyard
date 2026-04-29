@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { CreditCard, Lock, ArrowLeft, Building2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { Navbar } from '../../components/Navbar';
@@ -9,9 +9,11 @@ import { useBooking } from '../../context/BookingContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { showSuccessToast } from '../../utils/notificationHelpers';
+import { isValidPhoneNumber } from '../../../utils/emailValidation';
 
 export const PaymentPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { selectedSlots, createBooking, getTotalAmount, appSettings, bookings, subscriptions, courtBlocks } = useBooking();
   const bookingDisabled = Boolean(appSettings.bookingDisabled);
   const { user } = useAuth();
@@ -20,6 +22,13 @@ export const PaymentPage = () => {
   const venueName = typeof appSettings.landing?.venueName === 'string' && appSettings.landing.venueName.trim()
     ? appSettings.landing.venueName.trim()
     : appSettings.courts[0] || '';
+  const hasMobileNumber = Boolean(user?.phone && isValidPhoneNumber(user.phone));
+
+  useEffect(() => {
+    if (user && !hasMobileNumber) {
+      navigate('/user/profile', { state: { from: location.pathname } });
+    }
+  }, [hasMobileNumber, location.pathname, navigate, user]);
 
   const normalizeTimeSlot = (timeSlot: string) => {
     const [startPart, endPart] = timeSlot.split(' - ').map(part => part.trim());
@@ -179,6 +188,11 @@ export const PaymentPage = () => {
 
   const handlePayment = async () => {
     if (bookingDisabled) {
+      return;
+    }
+
+    if (user && !hasMobileNumber) {
+      navigate('/user/profile', { state: { from: location.pathname } });
       return;
     }
 

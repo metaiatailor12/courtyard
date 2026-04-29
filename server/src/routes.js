@@ -23,10 +23,13 @@ const {
 	listSubscriptions,
 	cancelSubscription,
 	updateSubscription,
-	getDashboardStats,
-	getRevenueSeries,
-	listUsers,
-	createContactMessage,
+	  getDashboardStats,
+	 	getRevenueSeries,
+	 	listUsers,
+	 	// deleteAllOtherUsersAndBookings,
+	 	// deleteUsersAndRelatedData,
+	 	// deleteBookingsPermanently,
+	 	createContactMessage,
 	listContactMessages,
 	listContactMessagesByEmail,
 	replyToContactMessage,
@@ -411,6 +414,9 @@ router.get('/admin/users', requireAuth, requireRole('admin'), asyncHandler(async
 	res.json({ users });
 }));
 
+// Bulk delete routes have been removed to disable destructive admin operations.
+// Admin delete routes removed to disable destructive operations from the API.
+
 router.get('/admin/reviews', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => {
 	const reviews = await listReviews();
 	res.json({ reviews });
@@ -473,6 +479,8 @@ router.delete('/admin/bookings/:bookingId', requireAuth, requireRole('admin'), a
 	const cancellationEmailSent = await sendBookingCancellationIfPossible(booking);
 	res.json({ booking: { ...booking, cancellationEmailSent } });
 }));
+
+// Admin booking delete route removed to disable destructive operations from the API.
 
 router.patch('/admin/bookings/:bookingId', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
 	const booking = await updateBooking(req.auth, req.params.bookingId, req.body || {});
