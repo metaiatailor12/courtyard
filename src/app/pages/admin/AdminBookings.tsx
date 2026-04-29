@@ -377,12 +377,7 @@ export const AdminBookings = () => {
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-4 text-left text-sm font-semibold text-gray-700 w-12">
-                      <input
-                        type="checkbox"
-                        checked={filteredBookings.length > 0 && filteredBookings.every((booking) => selectedBookingIds.includes(booking.id))}
-                        onChange={toggleAllBookings}
-                        className="h-4 w-4 rounded border-gray-300 text-[#808000] focus:ring-[#808000]"
-                      />
+                      <div className="w-4" />
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">Booking ID</th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">User</th>

@@ -74,7 +74,6 @@ const DEFAULT_LANDING = {
   venuePhone: '+91 98765 43210',
   venueEmail: 'info@thecourtyard.com',
   venueOperatingHoursText: '5:00 AM - 11:00 PM (All Days)',
-  venueRating: 4.7,
   contactQuickActions: [
     {
       id: 'contact-action-1',

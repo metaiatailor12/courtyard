@@ -49,6 +49,7 @@ export interface LandingPageContent {
   venueEmail?: string;
   venueOperatingHoursText?: string;
   venueRating?: number;
+  venueRatingCount?: number;
 
   // Contact page content
   contactQuickActions?: {

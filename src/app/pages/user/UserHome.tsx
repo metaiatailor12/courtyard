@@ -33,14 +33,11 @@ export const UserHome = () => {
   const venuePhone = content.venuePhone || (typeof landing.venuePhone === 'string' ? landing.venuePhone : '');
   const venueEmail = content.venueEmail || (typeof landing.venueEmail === 'string' ? landing.venueEmail : '');
   const venueHours = content.venueOperatingHoursText || (typeof landing.venueOperatingHoursText === 'string' ? landing.venueOperatingHoursText : '');
-  const ratingValue = typeof content.venueRating === 'number'
-    ? content.venueRating
-    : (typeof landing.venueRating === 'number' ? landing.venueRating : 0);
+  const reviews = Array.isArray(content.reviews) ? content.reviews : [];
   const mapsEmbedSrc = `https://www.google.com/maps?q=${encodeURIComponent(venueAddress)}&z=17&output=embed`;
   const availableCourts = appSettings.courts.length;
   const priceRange = `₹${appSettings.pricing.offPeak} - ₹${appSettings.pricing.peak}/hr`;
   const homeImages = content.gallery.map(image => image.url).filter(Boolean);
-  const reviews = Array.isArray(content.reviews) ? content.reviews : [];
 
   const nextImage = () => {
     if (homeImages.length > 0) {
@@ -158,14 +155,6 @@ export const UserHome = () => {
             {/* Overlay Info */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-8">
               <h1 className="text-4xl font-bold text-white mb-2">{venueName}</h1>
-              <div className="flex items-center gap-4 text-white/90">
-                <div className="flex items-center gap-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                  <span className="ml-2">{ratingValue} (127 ratings)</span>
-                </div>
-              </div>
             </div>
           </div>
         </GlassCard>
